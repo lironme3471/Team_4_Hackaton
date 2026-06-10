@@ -18,6 +18,7 @@ import {
   SentimentDot,
 } from './icons'
 import { LiveTranscript } from './LiveTranscript'
+import { EmailPreview } from './EmailPreview'
 
 const SEND_CHANNELS: Channel[] = ['email', 'sms']
 
@@ -181,6 +182,7 @@ function WrapUp(props: AppSpaceProps) {
   const { record, summary, sent, disposition, dispNotes, onChange, onAddFollowUp, onSend, onDispositionChange, onDispNotesChange, onSaveClose, onSaveRedial } = props
   const [editing, setEditing] = useState(false)
   const [sendChannel, setSendChannel] = useState<Channel>('email')
+  const [emailPreview, setEmailPreview] = useState(false)
 
   const setList = (key: 'resolved' | 'nextSteps', text: string) =>
     onChange({ ...summary, [key]: text.split('\n').filter((l) => l.trim() !== '') })
@@ -188,6 +190,10 @@ function WrapUp(props: AppSpaceProps) {
     onChange({ ...summary, followUps: summary.followUps.map((f) => (f.id === id ? { ...f, done: !f.done } : f)) })
 
   return (
+    <>
+    {emailPreview && (
+      <EmailPreview contact={record.contact} summary={summary} onClose={() => setEmailPreview(false)} />
+    )}
     <div className="scrollbar-thin flex-1 overflow-y-auto bg-ink-100/40">
       {/* CX Loop banner */}
       <div className="flex items-center gap-2 border-b border-brand-100 bg-gradient-to-r from-brand-50 to-white px-5 py-3">
@@ -260,7 +266,10 @@ function WrapUp(props: AppSpaceProps) {
                     ))}
                   </div>
                   <button
-                    onClick={() => onSend(sendChannel)}
+                    onClick={() => {
+                      onSend(sendChannel)
+                      if (sendChannel === 'email') setEmailPreview(true)
+                    }}
                     className="ml-auto rounded-lg bg-brand-500 px-4 py-1.5 text-sm font-semibold text-white hover:bg-brand-600"
                   >
                     Send Loop summary
@@ -372,6 +381,7 @@ function WrapUp(props: AppSpaceProps) {
         <WrapUpTranscript lines={record.liveTranscript} />
       </div>
     </div>
+    </>
   )
 }
 
