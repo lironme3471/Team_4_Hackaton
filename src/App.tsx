@@ -7,6 +7,7 @@ import { CallPanel } from './components/CallPanel'
 import { ContactHistory } from './components/ContactHistory'
 import { AppSpace } from './components/AppSpace'
 import { ResizeHandle } from './components/ResizeHandle'
+import { CallPlaybackView } from './components/CallPlaybackView'
 
 let followUpSeq = 1000
 let historySeq = 1000
@@ -24,6 +25,7 @@ function App() {
   const [phase, setPhase] = useState<AgentPhase>('acw')
   const [activeIndex, setActiveIndex] = useState(0)
   const [history, setHistory] = useState<CallHistoryEntry[]>(SEED_HISTORY)
+  const [playingLoopId, setPlayingLoopId] = useState<string | null>(null)
 
   // Per-call working state
   const [summaries, setSummaries] = useState<Record<string, LoopSummary>>(() =>
@@ -77,6 +79,7 @@ function App() {
         direction: record.interaction.direction,
         dateTime: nowLabel(),
         status: 'Closed',
+        loopRecord: record,
       },
       ...prev,
     ])
@@ -107,8 +110,10 @@ function App() {
           onRedial={saveAndRedial}
         />
         <ResizeHandle onDelta={(dx) => setLeftWidth((w) => clamp(w + dx, 220, 420))} />
-        {phase === 'available' ? (
-          <ContactHistory entries={history} onRedial={newOutbound} />
+        {phase === 'available' && !playingLoopId ? (
+          <ContactHistory entries={history} onRedial={newOutbound} onPlayCall={(id) => setPlayingLoopId(id)} />
+        ) : playingLoopId ? (
+          <CallPlaybackView loopId={playingLoopId} entries={history} onClose={() => setPlayingLoopId(null)} />
         ) : (
           <AppSpace
             phase={phase}
