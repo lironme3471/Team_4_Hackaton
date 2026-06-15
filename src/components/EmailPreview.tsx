@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import type { Contact, LoopSummary, TranscriptLine } from '../types'
+import type { Survey } from '../lib/survey'
 import { AGENT } from '../data/mockData'
+import { SurveyCard } from './SurveyCard'
 
 const BRAND = 'CX Loop'
 const FROM_EMAIL = 'support@cxloop.com'
@@ -52,6 +54,7 @@ export function EmailPreview({
   contact,
   summary,
   tips = [],
+  survey,
   interactionId,
   transcript,
   includeRecording,
@@ -60,6 +63,7 @@ export function EmailPreview({
   contact: Contact
   summary: LoopSummary
   tips?: string[]
+  survey?: Survey
   interactionId: string
   transcript?: TranscriptLine[]
   includeRecording?: boolean
@@ -201,6 +205,9 @@ export function EmailPreview({
               )}
 
               <p className="italic text-ink-500">{summary.closing}</p>
+
+              {/* Conversation-tailored feedback survey */}
+              {survey && <SurveyCard survey={survey} />}
 
               {/* Attachments section in email body */}
               {hasAttachments && (

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { SummaryPreview } from './SummaryPreview'
 import type { Contact, LoopSummary } from '../types'
 
@@ -23,6 +24,13 @@ const summary: LoopSummary = {
 }
 
 const tips = ['Update the card ending 4417 before June 15.', 'Your $49 refund is on its way.']
+
+const survey = {
+  url: 'https://cxloop.com/s/318024113',
+  question: 'How would you rate today\'s help with "Double charge on June invoice"?',
+  resolved: 'Did we fully resolve it?',
+  duration: '20 seconds',
+}
 
 describe('SummaryPreview channel templates', () => {
   it('renders the Outlook email template for the email channel, with tips', () => {
@@ -56,5 +64,43 @@ describe('SummaryPreview channel templates', () => {
   it('defaults to the SMS template for unknown/other channels', () => {
     render(<SummaryPreview channel="chat" contact={contact} summary={summary} tips={tips} interactionId="int-test" onClose={vi.fn()} />)
     expect(screen.getByText(/Text Message · SMS/i)).toBeInTheDocument()
+  })
+
+  it('includes the tailored feedback survey in the email template', () => {
+    render(<SummaryPreview channel="email" contact={contact} summary={summary} tips={tips} survey={survey} interactionId="int-test" onClose={vi.fn()} />)
+    expect(screen.getByText(/Quick feedback · 20 seconds/i)).toBeInTheDocument()
+    expect(screen.getByText(/Double charge on June invoice/i)).toBeInTheDocument()
+    // The survey is interactive (no dead external link).
+    expect(screen.queryByRole('link', { name: /feedback/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Submit feedback/i })).toBeInTheDocument()
+  })
+
+  it('captures a survey response and confirms, without navigating away', async () => {
+    const user = userEvent.setup()
+    render(<SummaryPreview channel="email" contact={contact} summary={summary} tips={tips} survey={survey} interactionId="int-test" onClose={vi.fn()} />)
+
+    // Submit is disabled until a rating is chosen.
+    expect(screen.getByRole('button', { name: /Submit feedback/i })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: /4 stars/i }))
+    await user.click(screen.getByRole('button', { name: /👍 Yes/i }))
+    await user.click(screen.getByRole('button', { name: /Submit feedback/i }))
+
+    expect(screen.getByText(/Thanks for your feedback/i)).toBeInTheDocument()
+    expect(screen.getByText(/4\/5/)).toBeInTheDocument()
+  })
+
+  it('renders a clickable survey link in the SMS message that opens the in-app survey', async () => {
+    const user = userEvent.setup()
+    render(<SummaryPreview channel="sms" contact={contact} summary={summary} tips={tips} survey={survey} interactionId="int-test" onClose={vi.fn()} />)
+    expect(screen.getByText(/Rate us \(20 seconds\):/i)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: survey.url }))
+    expect(screen.getByRole('button', { name: /Submit feedback/i })).toBeInTheDocument()
+  })
+
+  it('renders a clickable survey link in the WhatsApp message that opens the in-app survey', async () => {
+    const user = userEvent.setup()
+    render(<SummaryPreview channel="whatsapp" contact={contact} summary={summary} tips={tips} survey={survey} interactionId="int-test" onClose={vi.fn()} />)
+    await user.click(screen.getByRole('button', { name: survey.url }))
+    expect(screen.getByRole('button', { name: /Submit feedback/i })).toBeInTheDocument()
   })
 })

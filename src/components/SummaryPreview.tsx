@@ -1,7 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import type { Channel, Contact, LoopSummary, TranscriptLine } from '../types'
+import type { Survey } from '../lib/survey'
 import { AGENT } from '../data/mockData'
 import { EmailPreview } from './EmailPreview'
+import { SurveyModal } from './SurveyCard'
 import { WhatsAppIcon } from './icons'
 import { getSentimentArc, getSentimentBrief } from '../utils/sentimentCopy'
 
@@ -41,6 +43,7 @@ function buildSmsText(
   transcript: TranscriptLine[] | undefined,
   includeRecording: boolean | undefined,
   interactionId: string,
+  survey?: Survey,
 ) {
   const arc = getSentimentArc(sentimentLines ?? [])
   const brief = getSentimentBrief(arc)
@@ -53,6 +56,7 @@ function buildSmsText(
   if (tips[0]) msg += ` Tip: ${tips[0]}`
   if (transcript) msg += ` 📄 Transcript: cxloop.com/files/transcript-${interactionId}.txt`
   if (includeRecording) msg += ` 🎙 Recording: cxloop.com/files/call-${interactionId}.mp3`
+  if (survey) msg += ` Rate us (${survey.duration}): ${survey.url}`
   msg += ` Reply STOP to opt out.`
   return msg
 }
@@ -69,6 +73,7 @@ export function SummaryPreview({
   contact,
   summary,
   tips = [],
+  survey,
   interactionId,
   sentimentLines,
   transcript,
@@ -79,6 +84,7 @@ export function SummaryPreview({
   contact: Contact
   summary: LoopSummary
   tips?: string[]
+  survey?: Survey
   interactionId: string
   sentimentLines?: TranscriptLine[]
   transcript?: TranscriptLine[]
@@ -91,6 +97,7 @@ export function SummaryPreview({
         contact={contact}
         summary={summary}
         tips={tips}
+        survey={survey}
         interactionId={interactionId}
         transcript={transcript}
         includeRecording={includeRecording}
@@ -104,6 +111,7 @@ export function SummaryPreview({
         contact={contact}
         summary={summary}
         tips={tips}
+        survey={survey}
         interactionId={interactionId}
         sentimentLines={sentimentLines}
         transcript={transcript}
@@ -117,6 +125,7 @@ export function SummaryPreview({
       contact={contact}
       summary={summary}
       tips={tips}
+      survey={survey}
       interactionId={interactionId}
       sentimentLines={sentimentLines}
       transcript={transcript}
@@ -157,13 +166,15 @@ function CloseBar({ onClose }: { onClose: () => void }) {
 /* ---------------- SMS ---------------- */
 
 function SmsPreview({
-  contact, summary, tips, interactionId, sentimentLines, transcript, includeRecording, onClose,
+  contact, summary, tips, survey, interactionId, sentimentLines, transcript, includeRecording, onClose,
 }: {
-  contact: Contact; summary: LoopSummary; tips: string[]
+  contact: Contact; summary: LoopSummary; tips: string[]; survey?: Survey
   interactionId: string; sentimentLines?: TranscriptLine[]; transcript?: TranscriptLine[]; includeRecording?: boolean; onClose: () => void
 }) {
-  const text = buildSmsText(contact, summary, tips, sentimentLines, transcript, includeRecording, interactionId)
+  const [surveyOpen, setSurveyOpen] = useState(false)
+  const text = buildSmsText(contact, summary, tips, sentimentLines, transcript, includeRecording, interactionId, survey)
   const segments = Math.ceil(text.length / SMS_SEGMENT)
+  const [before, after] = survey ? text.split(survey.url) : [text, '']
   const hasAttachments = transcript || includeRecording
 
   return (
@@ -183,7 +194,19 @@ function SmsPreview({
           <div className="text-center text-[10px] text-ink-400">Today</div>
           <div className="flex justify-end">
             <div className="max-w-[78%] rounded-2xl rounded-br-sm bg-[#0b93f6] px-3.5 py-2 text-[13px] leading-relaxed text-white">
-              {text}
+              {before}
+              {survey && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setSurveyOpen(true)}
+                    className="break-all font-medium text-white underline underline-offset-2"
+                  >
+                    {survey.url}
+                  </button>
+                  {after}
+                </>
+              )}
             </div>
           </div>
           <div className="text-right text-[10px] text-ink-400">Delivered</div>
@@ -231,6 +254,7 @@ function SmsPreview({
         </div>
         <CloseBar onClose={onClose} />
       </div>
+      {surveyOpen && survey && <SurveyModal survey={survey} onClose={() => setSurveyOpen(false)} />}
     </PreviewShell>
   )
 }
@@ -238,11 +262,12 @@ function SmsPreview({
 /* ---------------- WhatsApp ---------------- */
 
 function WhatsAppPreview({
-  contact, summary, tips, interactionId, sentimentLines, transcript, includeRecording, onClose,
+  contact, summary, tips, survey, interactionId, sentimentLines, transcript, includeRecording, onClose,
 }: {
-  contact: Contact; summary: LoopSummary; tips: string[]
+  contact: Contact; summary: LoopSummary; tips: string[]; survey?: Survey
   interactionId: string; sentimentLines?: TranscriptLine[]; transcript?: TranscriptLine[]; includeRecording?: boolean; onClose: () => void
 }) {
+  const [surveyOpen, setSurveyOpen] = useState(false)
   const hasAttachments = transcript || includeRecording
   const arc = getSentimentArc(sentimentLines ?? [])
   const brief = getSentimentBrief(arc)
@@ -282,13 +307,28 @@ function WhatsAppPreview({
                 <p key={i}>➡️ {s}</p>
               ))}
 
-
               {tips.length > 0 && (
                 <>
                   <p className="mt-2 font-semibold">💡 A couple of tips</p>
                   {tips.map((t, i) => (
                     <p key={i} className="mt-0.5">• {t}</p>
                   ))}
+                </>
+              )}
+
+              {survey && (
+                <>
+                  <p className="mt-2 font-semibold">📝 {survey.question}</p>
+                  <p className="mt-0.5">
+                    Rate us ({survey.duration}):{' '}
+                    <button
+                      type="button"
+                      onClick={() => setSurveyOpen(true)}
+                      className="break-all text-[#1a73e8] underline underline-offset-2"
+                    >
+                      {survey.url}
+                    </button>
+                  </p>
                 </>
               )}
 
@@ -345,6 +385,7 @@ function WhatsAppPreview({
         </div>
         <CloseBar onClose={onClose} />
       </div>
+      {surveyOpen && survey && <SurveyModal survey={survey} onClose={() => setSurveyOpen(false)} />}
     </PreviewShell>
   )
 }
