@@ -26,7 +26,7 @@ const tips = ['Update the card ending 4417 before June 15.', 'Your $49 refund is
 
 describe('SummaryPreview channel templates', () => {
   it('renders the Outlook email template for the email channel, with tips', () => {
-    render(<SummaryPreview channel="email" contact={contact} summary={summary} tips={tips} onClose={vi.fn()} />)
+    render(<SummaryPreview channel="email" contact={contact} summary={summary} tips={tips} interactionId="int-test" onClose={vi.fn()} />)
     expect(screen.getByText(/Recap of your call/i)).toBeInTheDocument()
     expect(screen.getByText(new RegExp(contact.email))).toBeInTheDocument()
     expect(screen.getByText(/Looking ahead — a few tips/i)).toBeInTheDocument()
@@ -34,7 +34,7 @@ describe('SummaryPreview channel templates', () => {
   })
 
   it('renders the SMS template with a short message and segment counter', () => {
-    render(<SummaryPreview channel="sms" contact={contact} summary={summary} tips={tips} onClose={vi.fn()} />)
+    render(<SummaryPreview channel="sms" contact={contact} summary={summary} tips={tips} interactionId="int-test" onClose={vi.fn()} />)
     expect(screen.getByText(/Text Message · SMS/i)).toBeInTheDocument()
     // Only the single top tip is appended to SMS to keep it short.
     expect(screen.getByText(/Tip: Update the card ending 4417/i)).toBeInTheDocument()
@@ -42,19 +42,19 @@ describe('SummaryPreview channel templates', () => {
   })
 
   it('renders the WhatsApp template with a tips section', () => {
-    render(<SummaryPreview channel="whatsapp" contact={contact} summary={summary} tips={tips} onClose={vi.fn()} />)
+    render(<SummaryPreview channel="whatsapp" contact={contact} summary={summary} tips={tips} interactionId="int-test" onClose={vi.fn()} />)
     expect(screen.getByText(/business account/i)).toBeInTheDocument()
     expect(screen.getByText(/A couple of tips/i)).toBeInTheDocument()
     expect(screen.getByText(/Your \$49 refund is on its way/i)).toBeInTheDocument()
   })
 
   it('omits the tips section when there are no tips', () => {
-    render(<SummaryPreview channel="email" contact={contact} summary={summary} tips={[]} onClose={vi.fn()} />)
+    render(<SummaryPreview channel="email" contact={contact} summary={summary} tips={[]} interactionId="int-test" onClose={vi.fn()} />)
     expect(screen.queryByText(/Looking ahead/i)).not.toBeInTheDocument()
   })
 
   it('defaults to the SMS template for unknown/other channels', () => {
-    render(<SummaryPreview channel="chat" contact={contact} summary={summary} tips={tips} onClose={vi.fn()} />)
+    render(<SummaryPreview channel="chat" contact={contact} summary={summary} tips={tips} interactionId="int-test" onClose={vi.fn()} />)
     expect(screen.getByText(/Text Message · SMS/i)).toBeInTheDocument()
   })
 })

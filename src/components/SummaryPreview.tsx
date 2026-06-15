@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import type { Channel, Contact, LoopSummary } from '../types'
+import type { Channel, Contact, LoopSummary, TranscriptLine } from '../types'
 import { AGENT } from '../data/mockData'
 import { EmailPreview } from './EmailPreview'
 import { WhatsAppIcon } from './icons'
@@ -36,16 +36,32 @@ export function SummaryPreview({
   contact,
   summary,
   tips = [],
+  interactionId,
+  transcript,
+  includeRecording,
   onClose,
 }: {
   channel: Channel
   contact: Contact
   summary: LoopSummary
   tips?: string[]
+  interactionId: string
+  transcript?: TranscriptLine[]
+  includeRecording?: boolean
   onClose: () => void
 }) {
   if (channel === 'email') {
-    return <EmailPreview contact={contact} summary={summary} tips={tips} onClose={onClose} />
+    return (
+      <EmailPreview
+        contact={contact}
+        summary={summary}
+        tips={tips}
+        interactionId={interactionId}
+        transcript={transcript}
+        includeRecording={includeRecording}
+        onClose={onClose}
+      />
+    )
   }
   if (channel === 'whatsapp') {
     return <WhatsAppPreview contact={contact} summary={summary} tips={tips} onClose={onClose} />
