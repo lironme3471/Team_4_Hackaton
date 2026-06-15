@@ -21,6 +21,7 @@ import {
 import { LiveTranscript } from './LiveTranscript'
 import { SummaryPreview } from './SummaryPreview'
 import { buildSurvey } from '../lib/survey'
+import { useFeedback } from '../lib/feedback'
 
 const SEND_CHANNELS: Channel[] = ['email', 'sms', 'whatsapp']
 
@@ -191,6 +192,8 @@ function WrapUp(props: AppSpaceProps) {
   const tips = record.predictions.map((p) => p.customerTip).filter((t): t is string => Boolean(t))
   // Brief, conversation-tailored feedback survey attached to the recap.
   const survey = buildSurvey(record)
+  // Feedback received back from the customer for this interaction (placeholder receiver).
+  const feedback = useFeedback(record.interaction.id)
   const [includeTranscript, setIncludeTranscript] = useState(false)
   const [includeRecording, setIncludeRecording] = useState(false)
 
@@ -436,6 +439,40 @@ function WrapUp(props: AppSpaceProps) {
                 )
               })}
             </div>
+          </Card>
+
+          {/* Customer feedback received (placeholder receiver) */}
+          <Card>
+            <CardHeader title="Customer feedback" accent />
+            {feedback.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-ink-200 px-3 py-4 text-center">
+                <p className="text-xs text-ink-500">Awaiting the customer's response…</p>
+                <p className="mt-0.5 text-[11px] text-ink-400">
+                  Survey sent with the recap — responses arrive here once submitted.
+                </p>
+              </div>
+            ) : (
+              <ul className="space-y-2">
+                {feedback.map((f, i) => (
+                  <li key={i} className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-amber-500" aria-label={`${f.rating} of 5 stars`}>
+                        {'★'.repeat(f.rating)}{'☆'.repeat(5 - f.rating)}
+                      </span>
+                      <span className="text-[10px] uppercase tracking-wide text-ink-400">via {f.channel}</span>
+                    </div>
+                    <div className="mt-1 flex items-center gap-2 text-[11px] text-ink-600">
+                      {f.resolved && (
+                        <span className={f.resolved === 'yes' ? 'text-ok' : 'text-warn'}>
+                          {f.resolved === 'yes' ? '👍 Resolved' : '👎 Not yet resolved'}
+                        </span>
+                      )}
+                      <span className="text-ink-400">{new Date(f.submittedAt).toLocaleString()}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Card>
 
           {/* Disposition */}

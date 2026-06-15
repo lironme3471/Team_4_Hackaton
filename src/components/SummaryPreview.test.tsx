@@ -1,8 +1,11 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SummaryPreview } from './SummaryPreview'
+import { clearFeedback } from '../lib/feedback'
 import type { Contact, LoopSummary } from '../types'
+
+beforeEach(() => clearFeedback())
 
 const contact: Contact = {
   id: 'c-test',

@@ -1,15 +1,36 @@
 import { useEffect, useState } from 'react'
 import type { Survey } from '../lib/survey'
+import { submitFeedback } from '../lib/feedback'
+
+export interface SurveyContext {
+  interactionId: string
+  customer: string
+  channel: string
+}
 
 /**
- * Interactive feedback survey. Captures the response in local state and
- * confirms — no navigation to an external page (this is a self-contained
- * prototype, so there is no survey backend to hit).
+ * Interactive feedback survey. Captures the response in local state, sends it
+ * to the placeholder feedback receiver, and confirms — no navigation to an
+ * external page (this is a self-contained prototype).
  */
-export function SurveyCard({ survey }: { survey: Survey }) {
+export function SurveyCard({ survey, context }: { survey: Survey; context?: SurveyContext }) {
   const [rating, setRating] = useState(0)
   const [resolved, setResolved] = useState<'yes' | 'no' | null>(null)
   const [submitted, setSubmitted] = useState(false)
+
+  const handleSubmit = () => {
+    if (context) {
+      submitFeedback({
+        interactionId: context.interactionId,
+        customer: context.customer,
+        channel: context.channel,
+        rating,
+        resolved,
+        submittedAt: new Date().toISOString(),
+      })
+    }
+    setSubmitted(true)
+  }
 
   if (submitted) {
     return (
@@ -68,7 +89,7 @@ export function SurveyCard({ survey }: { survey: Survey }) {
       <button
         type="button"
         disabled={rating === 0}
-        onClick={() => setSubmitted(true)}
+        onClick={handleSubmit}
         className="mt-2 inline-block rounded bg-[#1a73e8] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#1666d0] disabled:cursor-not-allowed disabled:bg-ink-200 disabled:text-ink-400"
       >
         Submit feedback
@@ -81,7 +102,7 @@ export function SurveyCard({ survey }: { survey: Survey }) {
  * Overlay wrapper used when a survey link inside a message (SMS/WhatsApp) is
  * clicked — opens the interactive SurveyCard instead of navigating to the URL.
  */
-export function SurveyModal({ survey, onClose }: { survey: Survey; onClose: () => void }) {
+export function SurveyModal({ survey, context, onClose }: { survey: Survey; context?: SurveyContext; onClose: () => void }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', onKey)
@@ -91,7 +112,7 @@ export function SurveyModal({ survey, onClose }: { survey: Survey; onClose: () =
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-ink-900/50 p-4" onClick={onClose}>
       <div className="w-[360px] max-w-full" onClick={(e) => e.stopPropagation()}>
-        <SurveyCard survey={survey} />
+        <SurveyCard survey={survey} context={context} />
         <button
           onClick={onClose}
           className="mt-2 w-full rounded bg-white/90 py-1.5 text-xs font-medium text-ink-600 ring-1 ring-black/10 hover:bg-white"

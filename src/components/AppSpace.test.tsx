@@ -1,8 +1,11 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AppSpace, type AppSpaceProps } from './AppSpace'
 import { LOOP_RECORDS } from '../data/mockData'
+import { clearFeedback } from '../lib/feedback'
+
+beforeEach(() => clearFeedback())
 
 // Daniel — both predictions carry a customer-friendly tip.
 const danielRecord = LOOP_RECORDS[0]
@@ -95,5 +98,27 @@ describe('AppSpace wrap-up — preview + send flow', () => {
     await user.click(previewBtn)
 
     expect(screen.getByText(/Recap of your call/i)).toBeInTheDocument()
+  })
+})
+
+describe('AppSpace wrap-up — customer feedback loop', () => {
+  it('shows an awaiting placeholder until feedback is received', () => {
+    render(<AppSpace {...makeProps()} />)
+    expect(screen.getByText(/Awaiting the customer's response/i)).toBeInTheDocument()
+  })
+
+  it('records feedback submitted from the preview and surfaces it to the agent', async () => {
+    const user = userEvent.setup()
+    render(<AppSpace {...makeProps()} />)
+
+    // Customer opens the recap preview and submits the survey.
+    await user.click(screen.getByRole('button', { name: /^Preview$/i }))
+    await user.click(screen.getByRole('button', { name: /^5 stars$/i }))
+    await user.click(screen.getByRole('button', { name: /👍 Yes/i }))
+    await user.click(screen.getByRole('button', { name: /Submit feedback/i }))
+
+    // Loop closed: the agent panel now shows the received feedback.
+    expect(screen.getByLabelText(/5 of 5 stars/i)).toBeInTheDocument()
+    expect(screen.queryByText(/Awaiting the customer's response/i)).not.toBeInTheDocument()
   })
 })

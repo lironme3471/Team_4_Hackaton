@@ -71,9 +71,9 @@ export function SummaryPreview({
     )
   }
   if (channel === 'whatsapp') {
-    return <WhatsAppPreview contact={contact} summary={summary} tips={tips} survey={survey} onClose={onClose} />
+    return <WhatsAppPreview contact={contact} summary={summary} tips={tips} survey={survey} interactionId={interactionId} onClose={onClose} />
   }
-  return <SmsPreview contact={contact} summary={summary} tips={tips} survey={survey} onClose={onClose} />
+  return <SmsPreview contact={contact} summary={summary} tips={tips} survey={survey} interactionId={interactionId} onClose={onClose} />
 }
 
 /** Shared modal shell: dim backdrop, Esc / backdrop-click to close. */
@@ -106,7 +106,7 @@ function CloseBar({ onClose }: { onClose: () => void }) {
 
 /* ---------------- SMS ---------------- */
 
-function SmsPreview({ contact, summary, tips, survey, onClose }: { contact: Contact; summary: LoopSummary; tips: string[]; survey?: Survey; onClose: () => void }) {
+function SmsPreview({ contact, summary, tips, survey, interactionId, onClose }: { contact: Contact; summary: LoopSummary; tips: string[]; survey?: Survey; interactionId: string; onClose: () => void }) {
   const [surveyOpen, setSurveyOpen] = useState(false)
   const text = buildSmsText(contact, summary, tips, survey)
   const segments = Math.ceil(text.length / SMS_SEGMENT)
@@ -154,14 +154,20 @@ function SmsPreview({ contact, summary, tips, survey, onClose }: { contact: Cont
         </div>
         <CloseBar onClose={onClose} />
       </div>
-      {surveyOpen && survey && <SurveyModal survey={survey} onClose={() => setSurveyOpen(false)} />}
+      {surveyOpen && survey && (
+        <SurveyModal
+          survey={survey}
+          context={{ interactionId, customer: contact.name, channel: 'sms' }}
+          onClose={() => setSurveyOpen(false)}
+        />
+      )}
     </PreviewShell>
   )
 }
 
 /* ---------------- WhatsApp ---------------- */
 
-function WhatsAppPreview({ contact, summary, tips, survey, onClose }: { contact: Contact; summary: LoopSummary; tips: string[]; survey?: Survey; onClose: () => void }) {
+function WhatsAppPreview({ contact, summary, tips, survey, interactionId, onClose }: { contact: Contact; summary: LoopSummary; tips: string[]; survey?: Survey; interactionId: string; onClose: () => void }) {
   const [surveyOpen, setSurveyOpen] = useState(false)
   return (
     <PreviewShell onClose={onClose}>
@@ -245,7 +251,13 @@ function WhatsAppPreview({ contact, summary, tips, survey, onClose }: { contact:
         </div>
         <CloseBar onClose={onClose} />
       </div>
-      {surveyOpen && survey && <SurveyModal survey={survey} onClose={() => setSurveyOpen(false)} />}
+      {surveyOpen && survey && (
+        <SurveyModal
+          survey={survey}
+          context={{ interactionId, customer: contact.name, channel: 'whatsapp' }}
+          onClose={() => setSurveyOpen(false)}
+        />
+      )}
     </PreviewShell>
   )
 }

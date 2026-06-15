@@ -219,7 +219,12 @@ export function EmailPreview({
               <p className="italic text-ink-500">{summary.closing}</p>
 
               {/* Conversation-tailored feedback survey */}
-              {survey && <SurveyCard survey={survey} />}
+              {survey && (
+                <SurveyCard
+                  survey={survey}
+                  context={{ interactionId, customer: contact.name, channel: 'email' }}
+                />
+              )}
 
               {/* Attachments section in email body */}
               {hasAttachments && (
