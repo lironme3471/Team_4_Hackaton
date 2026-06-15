@@ -20,6 +20,7 @@ import {
 } from './icons'
 import { LiveTranscript } from './LiveTranscript'
 import { SummaryPreview } from './SummaryPreview'
+import { buildSurvey } from '../lib/survey'
 
 const SEND_CHANNELS: Channel[] = ['email', 'sms', 'whatsapp']
 
@@ -188,6 +189,8 @@ function WrapUp(props: AppSpaceProps) {
   // Customer-friendly versions of the AI next-issue insights, woven into the
   // recap. Sensitive predictions (no customerTip) stay internal-only.
   const tips = record.predictions.map((p) => p.customerTip).filter((t): t is string => Boolean(t))
+  // Brief, conversation-tailored feedback survey attached to the recap.
+  const survey = buildSurvey(record)
   const [includeTranscript, setIncludeTranscript] = useState(false)
   const [includeRecording, setIncludeRecording] = useState(false)
 
@@ -204,6 +207,7 @@ function WrapUp(props: AppSpaceProps) {
         contact={record.contact}
         summary={summary}
         tips={tips}
+        survey={survey}
         interactionId={record.interaction.id}
         transcript={includeTranscript ? record.liveTranscript : undefined}
         includeRecording={includeRecording}
@@ -278,6 +282,23 @@ function WrapUp(props: AppSpaceProps) {
                 <p className="mt-2 text-[10px] text-ink-400">Included in the recap sent to the customer.</p>
               </div>
             )}
+
+            {/* Conversation-tailored feedback survey */}
+            <div data-testid="feedback-survey" className="mt-3 rounded-lg border border-amber-200 bg-amber-50/60 p-3">
+              <div className="mb-1 flex items-center justify-between">
+                <h4 className="text-[10px] font-bold uppercase tracking-wide text-amber-700">
+                  Feedback survey · {survey.duration}
+                </h4>
+                <span className="text-[10px] font-medium text-amber-700 underline">
+                  {survey.url}
+                </span>
+              </div>
+              <ul className="space-y-1 text-[13px] text-ink-700">
+                <li className="flex gap-2"><span className="text-amber-500">①</span><span>{survey.question} <span className="text-ink-400">(1–5 ★)</span></span></li>
+                <li className="flex gap-2"><span className="text-amber-500">②</span><span>{survey.resolved} <span className="text-ink-400">(👍 / 👎)</span></span></li>
+              </ul>
+              <p className="mt-2 text-[10px] text-ink-400">A brief, tailored survey is added to the recap to encourage a response.</p>
+            </div>
 
             {/* Send to customer */}
             <div className="mt-4 border-t border-ink-100 pt-3">

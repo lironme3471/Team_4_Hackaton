@@ -1,7 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import type { Channel, Contact, LoopSummary, TranscriptLine } from '../types'
+import type { Survey } from '../lib/survey'
 import { AGENT } from '../data/mockData'
 import { EmailPreview } from './EmailPreview'
+import { SurveyModal } from './SurveyCard'
 import { WhatsAppIcon } from './icons'
 
 const BRAND = 'CX Loop'
@@ -14,13 +16,15 @@ function firstName(contact: Contact) {
  * Builds the short, plain-text body used for SMS — one segment where possible,
  * with a link to the richer email recap rather than the full content.
  */
-function buildSmsText(contact: Contact, summary: LoopSummary, tips: string[]) {
+function buildSmsText(contact: Contact, summary: LoopSummary, tips: string[], survey?: Survey) {
   const resolved = summary.resolved[0] ?? 'your request'
   const next = summary.nextSteps[0]
   let msg = `${BRAND}: Hi ${firstName(contact)}, thanks for contacting us. Resolved: ${resolved}.`
   if (next) msg += ` Next: ${next}.`
   if (tips[0]) msg += ` Tip: ${tips[0]}`
-  msg += ` Full recap sent to your email. Reply STOP to opt out.`
+  msg += ` Full recap sent to your email.`
+  if (survey) msg += ` Rate us (${survey.duration}): ${survey.url}`
+  msg += ` Reply STOP to opt out.`
   return msg
 }
 
@@ -36,6 +40,7 @@ export function SummaryPreview({
   contact,
   summary,
   tips = [],
+  survey,
   interactionId,
   transcript,
   includeRecording,
@@ -45,6 +50,7 @@ export function SummaryPreview({
   contact: Contact
   summary: LoopSummary
   tips?: string[]
+  survey?: Survey
   interactionId: string
   transcript?: TranscriptLine[]
   includeRecording?: boolean
@@ -56,6 +62,7 @@ export function SummaryPreview({
         contact={contact}
         summary={summary}
         tips={tips}
+        survey={survey}
         interactionId={interactionId}
         transcript={transcript}
         includeRecording={includeRecording}
@@ -64,9 +71,9 @@ export function SummaryPreview({
     )
   }
   if (channel === 'whatsapp') {
-    return <WhatsAppPreview contact={contact} summary={summary} tips={tips} onClose={onClose} />
+    return <WhatsAppPreview contact={contact} summary={summary} tips={tips} survey={survey} onClose={onClose} />
   }
-  return <SmsPreview contact={contact} summary={summary} tips={tips} onClose={onClose} />
+  return <SmsPreview contact={contact} summary={summary} tips={tips} survey={survey} onClose={onClose} />
 }
 
 /** Shared modal shell: dim backdrop, Esc / backdrop-click to close. */
@@ -99,9 +106,12 @@ function CloseBar({ onClose }: { onClose: () => void }) {
 
 /* ---------------- SMS ---------------- */
 
-function SmsPreview({ contact, summary, tips, onClose }: { contact: Contact; summary: LoopSummary; tips: string[]; onClose: () => void }) {
-  const text = buildSmsText(contact, summary, tips)
+function SmsPreview({ contact, summary, tips, survey, onClose }: { contact: Contact; summary: LoopSummary; tips: string[]; survey?: Survey; onClose: () => void }) {
+  const [surveyOpen, setSurveyOpen] = useState(false)
+  const text = buildSmsText(contact, summary, tips, survey)
   const segments = Math.ceil(text.length / SMS_SEGMENT)
+  // Split the message around the survey URL so it can render as a tappable link.
+  const [before, after] = survey ? text.split(survey.url) : [text, '']
 
   return (
     <PreviewShell onClose={onClose}>
@@ -120,7 +130,19 @@ function SmsPreview({ contact, summary, tips, onClose }: { contact: Contact; sum
           <div className="text-center text-[10px] text-ink-400">Today</div>
           <div className="flex justify-end">
             <div className="max-w-[78%] rounded-2xl rounded-br-sm bg-[#0b93f6] px-3.5 py-2 text-[13px] leading-relaxed text-white">
-              {text}
+              {before}
+              {survey && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setSurveyOpen(true)}
+                    className="break-all font-medium text-white underline underline-offset-2"
+                  >
+                    {survey.url}
+                  </button>
+                  {after}
+                </>
+              )}
             </div>
           </div>
           <div className="text-right text-[10px] text-ink-400">Delivered</div>
@@ -132,13 +154,15 @@ function SmsPreview({ contact, summary, tips, onClose }: { contact: Contact; sum
         </div>
         <CloseBar onClose={onClose} />
       </div>
+      {surveyOpen && survey && <SurveyModal survey={survey} onClose={() => setSurveyOpen(false)} />}
     </PreviewShell>
   )
 }
 
 /* ---------------- WhatsApp ---------------- */
 
-function WhatsAppPreview({ contact, summary, tips, onClose }: { contact: Contact; summary: LoopSummary; tips: string[]; onClose: () => void }) {
+function WhatsAppPreview({ contact, summary, tips, survey, onClose }: { contact: Contact; summary: LoopSummary; tips: string[]; survey?: Survey; onClose: () => void }) {
+  const [surveyOpen, setSurveyOpen] = useState(false)
   return (
     <PreviewShell onClose={onClose}>
       <div className="flex w-[380px] max-w-full flex-col overflow-hidden rounded-2xl bg-white shadow-panel ring-1 ring-black/10">
@@ -194,6 +218,22 @@ function WhatsAppPreview({ contact, summary, tips, onClose }: { contact: Contact
                 </>
               )}
 
+              {survey && (
+                <>
+                  <p className="mt-2 font-semibold">📝 {survey.question}</p>
+                  <p className="mt-0.5">
+                    Rate us ({survey.duration}):{' '}
+                    <button
+                      type="button"
+                      onClick={() => setSurveyOpen(true)}
+                      className="break-all text-[#1a73e8] underline underline-offset-2"
+                    >
+                      {survey.url}
+                    </button>
+                  </p>
+                </>
+              )}
+
               <p className="mt-2">Questions? Just reply here 💬</p>
               <p className="mt-1 text-ink-600">— {AGENT.name}, {BRAND} Support</p>
 
@@ -205,6 +245,7 @@ function WhatsAppPreview({ contact, summary, tips, onClose }: { contact: Contact
         </div>
         <CloseBar onClose={onClose} />
       </div>
+      {surveyOpen && survey && <SurveyModal survey={survey} onClose={() => setSurveyOpen(false)} />}
     </PreviewShell>
   )
 }

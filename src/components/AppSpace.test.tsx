@@ -49,6 +49,16 @@ describe('AppSpace wrap-up — AI insights in the Loop summary', () => {
     // It remains visible in the internal AI insight panel.
     expect(screen.getByText(/Frustration-driven plan downgrade/i)).toBeInTheDocument()
   })
+
+  it('shows a brief, conversation-tailored feedback survey with a link', () => {
+    render(<AppSpace {...makeProps()} />)
+    const surveyBox = within(screen.getByTestId('feedback-survey'))
+    // Tailored to this call's subject.
+    expect(surveyBox.getByText(new RegExp(danielRecord.interaction.subject, 'i'))).toBeInTheDocument()
+    // Kept to two short questions to encourage a response.
+    expect(surveyBox.getByText(/Did we fully resolve it\?/i)).toBeInTheDocument()
+    expect(surveyBox.getByText(/cxloop\.com\/s\//i)).toBeInTheDocument()
+  })
 })
 
 describe('AppSpace wrap-up — preview + send flow', () => {
