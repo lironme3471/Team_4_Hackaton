@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { LOOP_RECORDS, SEED_HISTORY } from './data/mockData'
-import type { AgentPhase, CallHistoryEntry, Channel, LoopSummary } from './types'
+import type { AgentPhase, CallHistoryEntry, LoopSummary } from './types'
 import { Sidebar } from './components/Sidebar'
 import { TopBar } from './components/TopBar'
 import { CallPanel } from './components/CallPanel'
@@ -50,7 +50,7 @@ function App() {
       followUps: [...summary.followUps, { id: `f-${followUpSeq++}`, text, owner: 'Agent', done: false }],
     })
 
-  const send = (_channel: Channel) =>
+  const send = () =>
     setSentIds((prev) => new Set(prev).add(record.interaction.id))
 
   // ---- call lifecycle transitions ----
@@ -67,8 +67,7 @@ function App() {
   }
 
   const newOutbound = () => startCall((activeIndex + 1) % LOOP_RECORDS.length)
-  const hangUp = () => setPhase('acw') // end the call → wrap-up
-  // Transcript finished streaming → automatically move into wrap-up.
+  const hangUp = () => setPhase('acw')
   const onCallComplete = () => setPhase((p) => (p === 'oncall' ? 'acw' : p))
 
   const logCall = () =>
@@ -91,10 +90,9 @@ function App() {
   }
   const saveAndRedial = () => {
     logCall()
-    startCall(activeIndex) // redial same contact
+    startCall(activeIndex)
   }
 
-  // The blue check on the call card: end → wrap-up, or in ACW close the call.
   const completeFromPanel = () => (phase === 'acw' ? saveAndClose() : setPhase('acw'))
 
   return (

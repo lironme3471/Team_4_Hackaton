@@ -9,6 +9,7 @@ import {
   ChatIcon,
   ChevronIcon,
   ContactCardIcon,
+  EyeIcon,
   HamburgerIcon,
   HistoryIcon,
   LightningIcon,
@@ -18,9 +19,9 @@ import {
   SentimentDot,
 } from './icons'
 import { LiveTranscript } from './LiveTranscript'
-import { EmailPreview } from './EmailPreview'
+import { SummaryPreview } from './SummaryPreview'
 
-const SEND_CHANNELS: Channel[] = ['email', 'sms']
+const SEND_CHANNELS: Channel[] = ['email', 'sms', 'whatsapp']
 
 function likelihoodTone(p: number) {
   if (p >= 65) return { bar: 'bg-danger', text: 'text-danger' }
@@ -182,7 +183,13 @@ function WrapUp(props: AppSpaceProps) {
   const { record, summary, sent, disposition, dispNotes, onChange, onAddFollowUp, onSend, onDispositionChange, onDispNotesChange, onSaveClose, onSaveRedial } = props
   const [editing, setEditing] = useState(false)
   const [sendChannel, setSendChannel] = useState<Channel>('email')
-  const [emailPreview, setEmailPreview] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
+
+  // Customer-friendly versions of the AI next-issue insights, woven into the
+  // recap. Sensitive predictions (no customerTip) stay internal-only.
+  const tips = record.predictions.map((p) => p.customerTip).filter((t): t is string => Boolean(t))
+  const [includeTranscript, setIncludeTranscript] = useState(false)
+  const [includeRecording, setIncludeRecording] = useState(false)
 
   const setList = (key: 'resolved' | 'nextSteps', text: string) =>
     onChange({ ...summary, [key]: text.split('\n').filter((l) => l.trim() !== '') })
@@ -191,8 +198,17 @@ function WrapUp(props: AppSpaceProps) {
 
   return (
     <>
-    {emailPreview && (
-      <EmailPreview contact={record.contact} summary={summary} onClose={() => setEmailPreview(false)} />
+    {showPreview && (
+      <SummaryPreview
+        channel={sendChannel}
+        contact={record.contact}
+        summary={summary}
+        tips={tips}
+        interactionId={record.interaction.id}
+        transcript={includeTranscript ? record.liveTranscript : undefined}
+        includeRecording={includeRecording}
+        onClose={() => setShowPreview(false)}
+      />
     )}
     <div className="scrollbar-thin flex-1 overflow-y-auto bg-ink-100/40">
       {/* CX Loop banner */}
@@ -242,38 +258,107 @@ function WrapUp(props: AppSpaceProps) {
               <p className="mt-2 text-xs italic text-ink-500">{summary.closing}</p>
             )}
 
+            {/* AI insights, made customer-friendly */}
+            {tips.length > 0 && (
+              <div data-testid="customer-tips" className="mt-3 rounded-lg border border-brand-100 bg-brand-50/60 p-3">
+                <div className="mb-1.5 flex items-center gap-1.5">
+                  <LightningIcon className="h-3.5 w-3.5 text-brand-500" />
+                  <h4 className="text-[10px] font-bold uppercase tracking-wide text-brand-600">
+                    Looking ahead · AI tips for {record.contact.name.split(' ')[0]}
+                  </h4>
+                </div>
+                <ul className="space-y-1.5">
+                  {tips.map((t, i) => (
+                    <li key={i} className="flex gap-2 text-[13px] text-ink-700">
+                      <span className="text-brand-500">💡</span>
+                      <span>{t}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-[10px] text-ink-400">Included in the recap sent to the customer.</p>
+              </div>
+            )}
+
             {/* Send to customer */}
             <div className="mt-4 border-t border-ink-100 pt-3">
               {sent ? (
-                <div className="flex items-center justify-center gap-2 rounded-lg bg-ok/10 py-2 text-sm font-medium text-ok">
-                  ✓ Summary sent via {CHANNEL_LABEL[sendChannel]} — loop closed
+                <div className="space-y-2">
+                  <div className="flex items-center justify-center gap-2 rounded-lg bg-ok/10 py-2 text-sm font-medium text-ok">
+                    ✓ Summary sent via {CHANNEL_LABEL[sendChannel]} — loop closed
+                  </div>
+                  {(includeTranscript || includeRecording) && (
+                    <div className="flex items-center justify-center gap-3 text-[11px] text-ink-400">
+                      {includeTranscript && <span>📄 Transcript attached</span>}
+                      {includeRecording && <span>🎙 Recording link included</span>}
+                    </div>
+                  )}
+                  <button
+                    onClick={() => setShowPreview(true)}
+                    className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-ink-200 py-1.5 text-xs font-medium text-ink-600 transition hover:bg-ink-100"
+                  >
+                    <EyeIcon className="h-4 w-4" />
+                    Preview summary
+                  </button>
                 </div>
               ) : (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-ink-500">Send to customer:</span>
-                  <div className="flex items-center gap-0.5 rounded-lg border border-ink-200 p-0.5">
-                    {SEND_CHANNELS.map((ch) => (
-                      <button
-                        key={ch}
-                        onClick={() => setSendChannel(ch)}
-                        title={CHANNEL_LABEL[ch]}
-                        className={`flex h-7 w-7 items-center justify-center rounded-md transition ${
-                          sendChannel === ch ? 'bg-brand-500 text-white' : 'text-ink-400 hover:bg-ink-100'
-                        }`}
-                      >
-                        <ChannelIcon channel={ch} className="h-4 w-4" />
-                      </button>
-                    ))}
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-ink-500">Send to customer:</span>
+                    <div className="flex items-center gap-0.5 rounded-lg border border-ink-200 p-0.5">
+                      {SEND_CHANNELS.map((ch) => (
+                        <button
+                          key={ch}
+                          onClick={() => setSendChannel(ch)}
+                          title={CHANNEL_LABEL[ch]}
+                          className={`flex h-7 w-7 items-center justify-center rounded-md transition ${
+                            sendChannel === ch ? 'bg-brand-500 text-white' : 'text-ink-400 hover:bg-ink-100'
+                          }`}
+                        >
+                          <ChannelIcon channel={ch} className="h-4 w-4" />
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => setShowPreview(true)}
+                      className="ml-auto flex items-center gap-1.5 rounded-lg border border-ink-200 px-3 py-1.5 text-sm font-medium text-ink-600 transition hover:bg-ink-100"
+                    >
+                      <EyeIcon className="h-4 w-4" />
+                      Preview
+                    </button>
+                    <button
+                      onClick={() => {
+                        onSend(sendChannel)
+                        setShowPreview(true)
+                      }}
+                      className="rounded-lg bg-brand-500 px-4 py-1.5 text-sm font-semibold text-white hover:bg-brand-600"
+                    >
+                      Send Loop summary
+                    </button>
                   </div>
-                  <button
-                    onClick={() => {
-                      onSend(sendChannel)
-                      if (sendChannel === 'email') setEmailPreview(true)
-                    }}
-                    className="ml-auto rounded-lg bg-brand-500 px-4 py-1.5 text-sm font-semibold text-white hover:bg-brand-600"
-                  >
-                    Send Loop summary
-                  </button>
+                  {/* Transparency attachments — email only */}
+                  {sendChannel === 'email' && (
+                    <div className="flex items-center gap-4 rounded-lg border border-ink-100 bg-ink-50 px-3 py-2">
+                      <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-400">Include</span>
+                      <label className="flex cursor-pointer items-center gap-1.5 text-xs text-ink-600">
+                        <input
+                          type="checkbox"
+                          checked={includeTranscript}
+                          onChange={(e) => setIncludeTranscript(e.target.checked)}
+                          className="h-3.5 w-3.5 accent-brand-500"
+                        />
+                        📄 Call transcript
+                      </label>
+                      <label className="flex cursor-pointer items-center gap-1.5 text-xs text-ink-600">
+                        <input
+                          type="checkbox"
+                          checked={includeRecording}
+                          onChange={(e) => setIncludeRecording(e.target.checked)}
+                          className="h-3.5 w-3.5 accent-brand-500"
+                        />
+                        🎙 Call recording
+                      </label>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

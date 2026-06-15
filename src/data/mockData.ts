@@ -153,6 +153,8 @@ export const LOOP_RECORDS: LoopRecord[] = [
           'Autopay is enabled and scheduled for 06/15, but the only payment method on file (Visa •4417) expired 05/26. The customer was already warned about this in April but did not update it.',
         suggestedAction:
           'Proactively include a one-tap "Update card" link in the summary and flag the account for a payment-method reminder on 06/13.',
+        customerTip:
+          'Heads-up: the card on file (Visa ending 4417) expired in May. Updating it before June 15 will keep autopay running smoothly and avoid a missed-payment hiccup.',
       },
       {
         title: 'Refund-timing follow-up contact',
@@ -160,6 +162,8 @@ export const LOOP_RECORDS: LoopRecord[] = [
         reasoning:
           'Negative sentiment on a billing issue plus a 3–5 day refund window historically drives a "where is my refund?" check-in around day 3.',
         suggestedAction: 'Send a proactive "refund is on its way" note on 06/12 to pre-empt the call.',
+        customerTip:
+          'Your $49 refund is already on its way and should land in 3–5 business days — no need to check in, we’ll email you the moment it posts.',
       },
     ],
   },
@@ -274,6 +278,8 @@ export const LOOP_RECORDS: LoopRecord[] = [
           'The 06/07 decline was an insufficient-funds response, and the business runs tight cash flow at the start of the month. The replacement card is from the same bank, so the 07/01 autopay charge could decline again.',
         suggestedAction:
           'Offer to move the billing date to the 15th to align with the bakery’s cash flow, and turn on a pre-charge reminder.',
+        customerTip:
+          'To help avoid another interruption, we can shift your billing date to the 15th so it lines up better with your cash flow — just reply and we’ll set it up. We’ll also send a reminder a few days before each charge.',
       },
       {
         title: 'Frustration-driven plan downgrade',
@@ -394,6 +400,8 @@ export const LOOP_RECORDS: LoopRecord[] = [
           'The price objection was strong and only deferred by a temporary credit. When the bill returns to $59 on 09/01, cancellation risk spikes — the top churn pattern for post-promo accounts.',
         suggestedAction:
           'Flag for a retention rate-review on 08/24 and prepare an annual-plan offer that locks in a lower effective rate.',
+        customerTip:
+          'Your $39 rate runs through August 31. We’ll reach out before then to walk through the best long-term option for you — including an annual plan that can lock in a lower rate — so there are no surprises.',
       },
       {
         title: 'Callback disputing taxes and fees',
@@ -401,6 +409,8 @@ export const LOOP_RECORDS: LoopRecord[] = [
         reasoning:
           'Customers surprised by a base-rate increase frequently call again questioning the added taxes and fees on the higher bill.',
         suggestedAction: 'Include a clear line-item breakdown of taxes and fees in the summary.',
+        customerTip:
+          'Wondering about the taxes and fees on your bill? Your next invoice includes a clear line-by-line breakdown — and you can always reply here if anything looks unclear.',
       },
     ],
   },

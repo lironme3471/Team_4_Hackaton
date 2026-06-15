@@ -76,6 +76,12 @@ export interface Prediction {
   likelihood: number // 0-100
   reasoning: string
   suggestedAction: string
+  /**
+   * Customer-friendly rephrasing of the insight, safe to include in the recap
+   * sent to the customer. Omitted for sensitive predictions (e.g. churn,
+   * downgrade) that should stay internal-only.
+   */
+  customerTip?: string
 }
 
 /** The AI-drafted post-interaction summary the agent reviews. */
