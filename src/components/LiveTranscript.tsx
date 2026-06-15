@@ -109,6 +109,8 @@ export function LiveTranscript({
       u.rate = (agent ? 1.03 : 0.97) + jitter(0.04)
       u.onend = () => advance(300)
       u.onerror = () => advance(dwellFor(line.text))
+      // Chrome silently pauses synthesis after inactivity — resume before each utterance.
+      synth.resume()
       synth.speak(u)
     }
 
@@ -142,9 +144,14 @@ export function LiveTranscript({
     }
 
     timer = setTimeout(revealNext, 600)
+
+    // Chrome pauses speechSynthesis after ~15s of inactivity; kick it every 10s.
+    const heartbeat = synth ? setInterval(() => { if (!cancelled) synth.resume() }, 10000) : undefined
+
     return () => {
       cancelled = true
       clearTimeout(timer)
+      clearInterval(heartbeat)
       synth?.cancel()
       audioElRef.current?.pause()
       audioElRef.current = null
