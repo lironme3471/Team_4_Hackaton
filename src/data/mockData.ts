@@ -46,6 +46,9 @@ export const LOOP_RECORDS: LoopRecord[] = [
       { speaker: 'agent', text: 'I see the $12 late fee. I’ll waive that and refund one $49 charge right now.' },
       { speaker: 'customer', text: 'Thank you, I really appreciate it.' },
       { speaker: 'agent', text: 'All done — the refund posts in three to five business days and the fee is removed.' },
+      { speaker: 'agent', text: 'One more thing — I noticed your Visa ending 4417 expired in May. Before your next charge on June 15th, could you update your payment method?' },
+      { speaker: 'customer', text: 'Oh, good catch! I\'ll update that right now.' },
+      { speaker: 'agent', text: 'Perfect. You\'ll receive a summary of our call via email along with a brief feedback survey. We\'d genuinely appreciate your feedback — it helps us get better every day.' },
     ],
     interaction: {
       id: 'int-7781',
@@ -120,7 +123,6 @@ export const LOOP_RECORDS: LoopRecord[] = [
       resolved: [
         'Confirmed the duplicate $49 charge on your June invoice.',
         'Issued a full $49 refund (3–5 business days to your Visa).',
-        'Waived the $12 late fee applied in error.',
       ],
       nextSteps: [
         'Your refund confirmation will arrive by email within 24 hours.',
