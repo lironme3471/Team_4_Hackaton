@@ -51,6 +51,7 @@ const TrashI = () => (
 export function EmailPreview({
   contact,
   summary,
+  tips = [],
   interactionId,
   transcript,
   includeRecording,
@@ -58,6 +59,7 @@ export function EmailPreview({
 }: {
   contact: Contact
   summary: LoopSummary
+  tips?: string[]
   interactionId: string
   transcript?: TranscriptLine[]
   includeRecording?: boolean
@@ -190,6 +192,20 @@ export function EmailPreview({
                           {f.text}
                           {f.due && <span className="text-ink-400"> — by {f.due}</span>}
                         </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {tips.length > 0 && (
+                <div className="rounded-lg border border-[#1a73e8]/20 bg-[#1a73e8]/5 p-3">
+                  <h2 className="mb-1 text-xs font-bold uppercase tracking-wide text-[#1a73e8]">Looking ahead — a few tips</h2>
+                  <ul className="space-y-1.5">
+                    {tips.map((t, i) => (
+                      <li key={i} className="flex gap-2 text-[13px]">
+                        <span>💡</span>
+                        <span>{t}</span>
                       </li>
                     ))}
                   </ul>
