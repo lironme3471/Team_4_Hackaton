@@ -65,8 +65,7 @@ function App() {
   }
 
   const newOutbound = () => startCall((activeIndex + 1) % LOOP_RECORDS.length)
-  const hangUp = () => setPhase('acw') // end the call → wrap-up
-  // Transcript finished streaming → automatically move into wrap-up.
+  const hangUp = () => setPhase('acw')
   const onCallComplete = () => setPhase((p) => (p === 'oncall' ? 'acw' : p))
 
   const logCall = () =>
@@ -88,10 +87,9 @@ function App() {
   }
   const saveAndRedial = () => {
     logCall()
-    startCall(activeIndex) // redial same contact
+    startCall(activeIndex)
   }
 
-  // The blue check on the call card: end → wrap-up, or in ACW close the call.
   const completeFromPanel = () => (phase === 'acw' ? saveAndClose() : setPhase('acw'))
 
   return (
