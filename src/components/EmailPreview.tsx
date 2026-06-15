@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import type { Contact, LoopSummary } from '../types'
+import type { Contact, LoopSummary, TranscriptLine } from '../types'
 import { AGENT } from '../data/mockData'
 
 const BRAND = 'CX Loop'
@@ -14,6 +14,19 @@ function fmtMailDate() {
     hour: 'numeric',
     minute: '2-digit',
   })
+}
+
+function downloadTranscript(lines: TranscriptLine[], interactionId: string) {
+  const text = lines
+    .map((l) => `${l.speaker === 'agent' ? `${AGENT.name} (Agent)` : 'Caller'}: ${l.text}`)
+    .join('\n')
+  const blob = new Blob([text], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `call-transcript-${interactionId}.txt`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 /** Tiny inline icons for the Outlook command bar (decorative). */
@@ -33,15 +46,21 @@ const TrashI = () => (
 
 /**
  * Outlook-365-styled preview of the loop summary as the customer receives it.
- * A single Close button dismisses it (Esc and backdrop click also close).
+ * Transcript attachment downloads a real .txt file; recording is a mock link.
  */
 export function EmailPreview({
   contact,
   summary,
+  interactionId,
+  transcript,
+  includeRecording,
   onClose,
 }: {
   contact: Contact
   summary: LoopSummary
+  interactionId: string
+  transcript?: TranscriptLine[]
+  includeRecording?: boolean
   onClose: () => void
 }) {
   useEffect(() => {
@@ -51,6 +70,7 @@ export function EmailPreview({
   }, [onClose])
 
   const subject = `Recap of your call with ${BRAND} — what we resolved & next steps`
+  const hasAttachments = transcript || includeRecording
 
   return (
     <div
@@ -100,6 +120,25 @@ export function EmailPreview({
               </div>
             </div>
           </div>
+
+          {/* Attachments row */}
+          {hasAttachments && (
+            <div className="mt-2 flex flex-wrap gap-2 border-t border-ink-100 pt-2">
+              {transcript && (
+                <button
+                  onClick={() => downloadTranscript(transcript, interactionId)}
+                  className="flex items-center gap-1.5 rounded border border-ink-200 bg-ink-50 px-2.5 py-1 text-xs text-ink-700 hover:bg-ink-100"
+                >
+                  <span>📄</span> call-transcript-{interactionId}.txt
+                </button>
+              )}
+              {includeRecording && (
+                <span className="flex items-center gap-1.5 rounded border border-ink-200 bg-ink-50 px-2.5 py-1 text-xs text-ink-700">
+                  <span>🎙</span> call-recording-{interactionId}.mp3
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Email body */}
@@ -158,6 +197,40 @@ export function EmailPreview({
               )}
 
               <p className="italic text-ink-500">{summary.closing}</p>
+
+              {/* Attachments section in email body */}
+              {hasAttachments && (
+                <div className="rounded-lg border border-ink-200 bg-ink-50 p-3">
+                  <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-500">Attachments</h2>
+                  <ul className="space-y-2">
+                    {transcript && (
+                      <li className="flex items-start gap-2">
+                        <span className="mt-0.5 text-base leading-none">📄</span>
+                        <div>
+                          <button
+                            onClick={() => downloadTranscript(transcript, interactionId)}
+                            className="text-sm font-medium text-[#1a73e8] hover:underline"
+                          >
+                            call-transcript-{interactionId}.txt
+                          </button>
+                          <p className="text-[11px] text-ink-400">Full call transcript — click to download</p>
+                        </div>
+                      </li>
+                    )}
+                    {includeRecording && (
+                      <li className="flex items-start gap-2">
+                        <span className="mt-0.5 text-base leading-none">🎙</span>
+                        <div>
+                          <span className="text-sm font-medium text-[#1a73e8]">
+                            call-recording-{interactionId}.mp3
+                          </span>
+                          <p className="text-[11px] text-ink-400">Call recording — secure link, available for 30 days</p>
+                        </div>
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              )}
 
               <div className="border-t border-ink-100 pt-3 text-xs text-ink-500">
                 Warm regards,
