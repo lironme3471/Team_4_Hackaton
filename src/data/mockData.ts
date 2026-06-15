@@ -46,6 +46,8 @@ export const LOOP_RECORDS: LoopRecord[] = [
       { speaker: 'agent', text: 'I see the $12 late fee. I’ll waive that and refund one $49 charge right now.' },
       { speaker: 'customer', text: 'Thank you, I really appreciate it.' },
       { speaker: 'agent', text: 'All done — the refund posts in three to five business days and the fee is removed.' },
+      { speaker: 'agent', text: 'One more thing — I noticed your Visa ending 4417 expired in May. Before your next charge on June 15th, could you update your payment method?' },
+      { speaker: 'customer', text: 'Oh, good catch! I\'ll update that right now.' },
     ],
     interaction: {
       id: 'int-7781',

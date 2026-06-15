@@ -30,6 +30,7 @@ export function LiveTranscript({
   const [audioOn, setAudioOn] = useState(SPEECH_SUPPORTED)
   const endRef = useRef<HTMLDivElement>(null)
   const voicesRef = useRef<SpeechSynthesisVoice[]>([])
+  const audioElRef = useRef<HTMLAudioElement | null>(null)
   const finishedRef = useRef(false)
   const done = count >= lines.length
 
@@ -53,41 +54,91 @@ export function LiveTranscript({
     let timer: ReturnType<typeof setTimeout>
     const synth = SPEECH_SUPPORTED ? window.speechSynthesis : null
 
-    // Pick clear, distinct voices by name: a female voice for Maya, a male
-    // voice for the caller. Falls back gracefully when names aren't present.
+    // Pick the most natural-sounding voices the platform offers, then split
+    // them into a female voice for Maya and a male voice for the caller. The
+    // default system voices sound robotic, so we score every English voice on
+    // "naturalness" markers — macOS Premium/Enhanced and Siri voices, Edge's
+    // "Online (Natural)" neural voices, and Google's network voices — and
+    // prefer the highest-scoring one for each speaker.
     const en = voicesRef.current.filter((v) => v.lang?.toLowerCase().startsWith('en'))
-    const byPref = (prefs: string[], exclude?: SpeechSynthesisVoice) => {
-      for (const p of prefs) {
-        const v = en.find((v) => v.name.toLowerCase().includes(p) && v !== exclude)
-        if (v) return v
-      }
-      return en.find((v) => v !== exclude) ?? en[0]
+    const naturalness = (v: SpeechSynthesisVoice) => {
+      const n = v.name.toLowerCase()
+      let score = 0
+      if (n.includes('natural') || n.includes('neural')) score += 6
+      if (n.includes('premium') || n.includes('enhanced')) score += 5
+      if (n.includes('siri')) score += 5
+      if (n.includes('online')) score += 3
+      if (n.includes('google')) score += 3
+      if (!v.localService) score += 2 // network/cloud voices are usually higher fidelity
+      if (v.lang?.toLowerCase() === 'en-us') score += 1
+      return score
     }
-    const agentVoice = byPref(['samantha', 'aria', 'jenny', 'victoria', 'karen', 'zira', 'google us english', 'female'])
-    const customerVoice = byPref(['alex', 'daniel', 'guy', 'david', 'google uk english male', 'tom', 'aaron', 'male'], agentVoice)
+    const FEMALE = ['aria', 'jenny', 'samantha', 'ava', 'allison', 'zoe', 'victoria', 'karen', 'zira', 'female']
+    const MALE = ['guy', 'aaron', 'alex', 'tom', 'daniel', 'evan', 'david', 'fred', 'male']
+    const bestFor = (names: string[], exclude?: SpeechSynthesisVoice) => {
+      const matches = en
+        .filter((v) => v !== exclude && names.some((p) => v.name.toLowerCase().includes(p)))
+        .sort((a, b) => naturalness(b) - naturalness(a))
+      if (matches[0]) return matches[0]
+      // No gendered name matched — fall back to the most natural remaining voice.
+      return [...en].filter((v) => v !== exclude).sort((a, b) => naturalness(b) - naturalness(a))[0] ?? en[0]
+    }
+    const agentVoice = bestFor(FEMALE)
+    const customerVoice = bestFor(MALE, agentVoice)
+
+    const advance = (delay: number) => {
+      if (!cancelled) timer = setTimeout(revealNext, delay)
+    }
+
+    // Fallback speech path: speak via the Web Speech API, humanizing the flat
+    // default prosody, or just time the reveal if speech isn't available.
+    const speakSynth = (line: TranscriptLine, at: number) => {
+      if (!synth) return advance(dwellFor(line.text))
+      const u = new SpeechSynthesisUtterance(line.text)
+      const agent = line.speaker === 'agent'
+      const v = agent ? agentVoice : customerVoice
+      if (v) u.voice = v
+      // Real speech isn't flat. Give each speaker a distinct baseline (Maya a
+      // touch brighter and crisper, the caller lower and slightly slower) and
+      // nudge pitch/rate a little per line so it doesn't sound monotone. A
+      // trailing "?" lifts the pitch slightly.
+      const seed = ((at + 1) * 2654435761) % 1000 / 1000 // deterministic 0..1 per line
+      const jitter = (amt: number) => (seed - 0.5) * 2 * amt
+      const asks = /\?\s*$/.test(line.text)
+      u.pitch = (agent ? 1.08 : 0.92) + jitter(0.05) + (asks ? 0.06 : 0)
+      u.rate = (agent ? 1.03 : 0.97) + jitter(0.04)
+      u.onend = () => advance(300)
+      u.onerror = () => advance(dwellFor(line.text))
+      synth.speak(u)
+    }
 
     const revealNext = () => {
       if (cancelled || idx >= lines.length) return
-      const line = lines[idx]
+      const at = idx
+      const line = lines[at]
       idx += 1
       setCount(idx)
 
-      if (audioOn && synth) {
-        const u = new SpeechSynthesisUtterance(line.text)
-        const v = line.speaker === 'agent' ? agentVoice : customerVoice
-        if (v) u.voice = v
-        u.pitch = 1.0
-        u.rate = 1.0
-        u.onend = () => {
-          if (!cancelled) timer = setTimeout(revealNext, 300)
-        }
-        u.onerror = () => {
-          if (!cancelled) timer = setTimeout(revealNext, dwellFor(line.text))
-        }
-        synth.speak(u)
-      } else {
-        timer = setTimeout(revealNext, dwellFor(line.text))
+      if (!audioOn) return advance(dwellFor(line.text))
+
+      // Prefer a pre-generated cloud-TTS clip (natural, human-sounding voices
+      // produced offline by scripts/generate-voices.ts). If the clip is
+      // missing — e.g. it hasn't been generated yet — fall back to the Web
+      // Speech API. `handled` guards against play() rejecting *and* firing
+      // `error`, which would otherwise advance twice.
+      let handled = false
+      const fallback = () => {
+        if (handled) return
+        handled = true
+        speakSynth(line, at)
       }
+      const el = new Audio(`${import.meta.env.BASE_URL}audio/${restartKey}_${at}.mp3`)
+      audioElRef.current = el
+      el.onended = () => {
+        if (!handled) advance(300)
+      }
+      el.onerror = fallback
+      el.play().catch(fallback)
     }
 
     timer = setTimeout(revealNext, 600)
@@ -95,6 +146,8 @@ export function LiveTranscript({
       cancelled = true
       clearTimeout(timer)
       synth?.cancel()
+      audioElRef.current?.pause()
+      audioElRef.current = null
     }
   }, [restartKey, lines, audioOn])
 

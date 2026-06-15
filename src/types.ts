@@ -15,6 +15,7 @@ export interface CallHistoryEntry {
   direction: CallDirection
   dateTime: string // e.g. "06/10/26 08:31"
   status: 'Closed'
+  loopRecord?: LoopRecord
 }
 
 export interface Message {
