@@ -4,6 +4,13 @@ import { SpeakerOffIcon, SpeakerOnIcon } from './icons'
 
 const SPEECH_SUPPORTED = typeof window !== 'undefined' && 'speechSynthesis' in window
 
+// ElevenLabs neural TTS — ultra-realistic voices indistinguishable from human speech.
+// Rachel (agent) and Antoni (caller) are ElevenLabs stock voices with natural prosody.
+const EL_KEY = (import.meta.env.VITE_ELEVENLABS_API_KEY ?? '') as string
+const EL_ENABLED = EL_KEY && EL_KEY !== 'your_api_key_here'
+const EL_VOICE_AGENT  = '21m00Tcm4TlvDq8ikWAM' // Rachel
+const EL_VOICE_CALLER = 'ErXwobaYiN019PkySvjV'  // Antoni
+
 /** Timer fallback (and inter-line gap) pacing, in ms, based on word count. */
 function dwellFor(text: string) {
   const words = text.split(/\s+/).length
@@ -32,6 +39,8 @@ export function LiveTranscript({
   const voicesRef = useRef<SpeechSynthesisVoice[]>([])
   const audioElRef = useRef<HTMLAudioElement | null>(null)
   const finishedRef = useRef(false)
+  // Blob URLs cached per (restartKey, lineIndex) to avoid redundant ElevenLabs API calls.
+  const elCacheRef = useRef<Map<string, string>>(new Map())
   const done = count >= lines.length
 
   // Load available voices (async on some browsers).
@@ -114,7 +123,7 @@ export function LiveTranscript({
       synth.speak(u)
     }
 
-    const revealNext = () => {
+    const revealNext = async () => {
       if (cancelled || idx >= lines.length) return
       const at = idx
       const line = lines[at]
@@ -123,24 +132,43 @@ export function LiveTranscript({
 
       if (!audioOn) return advance(dwellFor(line.text))
 
-      // Prefer a pre-generated cloud-TTS clip (natural, human-sounding voices
-      // produced offline by scripts/generate-voices.ts). If the clip is
-      // missing — e.g. it hasn't been generated yet — fall back to the Web
-      // Speech API. `handled` guards against play() rejecting *and* firing
-      // `error`, which would otherwise advance twice.
-      let handled = false
-      const fallback = () => {
-        if (handled) return
-        handled = true
-        speakSynth(line, at)
+      // --- ElevenLabs neural TTS (primary path) ---
+      if (EL_ENABLED) {
+        const cacheKey = `${restartKey}_${at}`
+        let blobUrl = elCacheRef.current.get(cacheKey)
+        if (!blobUrl) {
+          try {
+            const voiceId = line.speaker === 'agent' ? EL_VOICE_AGENT : EL_VOICE_CALLER
+            const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+              method: 'POST',
+              headers: { 'xi-api-key': EL_KEY, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                text: line.text,
+                model_id: 'eleven_turbo_v2_5',
+                voice_settings: { stability: 0.5, similarity_boost: 0.8 },
+              }),
+            })
+            if (!res.ok) throw new Error(`ElevenLabs ${res.status}`)
+            const blob = await res.blob()
+            blobUrl = URL.createObjectURL(blob)
+            elCacheRef.current.set(cacheKey, blobUrl)
+          } catch {
+            // Fall through to Web Speech API below.
+          }
+        }
+        if (blobUrl && !cancelled) {
+          const el = new Audio(blobUrl)
+          audioElRef.current = el
+          el.onended = () => { if (!cancelled) advance(300) }
+          el.onerror  = () => { if (!cancelled) speakSynth(line, at) }
+          el.play().catch(() => { if (!cancelled) speakSynth(line, at) })
+          return
+        }
+        if (cancelled) return
       }
-      const el = new Audio(`${import.meta.env.BASE_URL}audio/${restartKey}_${at}.mp3`)
-      audioElRef.current = el
-      el.onended = () => {
-        if (!handled) advance(300)
-      }
-      el.onerror = fallback
-      el.play().catch(fallback)
+
+      // --- Web Speech API fallback ---
+      speakSynth(line, at)
     }
 
     timer = setTimeout(revealNext, 600)
@@ -155,6 +183,9 @@ export function LiveTranscript({
       synth?.cancel()
       audioElRef.current?.pause()
       audioElRef.current = null
+      // Revoke cached blob URLs to free memory when the call restarts.
+      elCacheRef.current.forEach((url) => URL.revokeObjectURL(url))
+      elCacheRef.current.clear()
     }
   }, [restartKey, lines, audioOn])
 
