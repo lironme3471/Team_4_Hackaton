@@ -205,6 +205,7 @@ function WrapUp(props: AppSpaceProps) {
         summary={summary}
         tips={tips}
         interactionId={record.interaction.id}
+        sentimentLines={record.liveTranscript}
         transcript={includeTranscript ? record.liveTranscript : undefined}
         includeRecording={includeRecording}
         onClose={() => setShowPreview(false)}
@@ -237,9 +238,10 @@ function WrapUp(props: AppSpaceProps) {
               </button>
             </CardHeader>
             {editing ? (
-              <input
+              <textarea
                 value={summary.greeting}
                 onChange={(e) => onChange({ ...summary, greeting: e.target.value })}
+                rows={3}
                 className="mb-3 w-full rounded border border-ink-200 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
               />
             ) : (
@@ -463,14 +465,14 @@ function WrapUp(props: AppSpaceProps) {
       </div>
 
       <div className="px-5 pb-5">
-        <WrapUpTranscript lines={record.liveTranscript} />
+        <WrapUpTranscript lines={record.liveTranscript} contactName={record.contact.name.split(' ')[0]} />
       </div>
     </div>
     </>
   )
 }
 
-function WrapUpTranscript({ lines }: { lines: LoopRecord['liveTranscript'] }) {
+function WrapUpTranscript({ lines, contactName }: { lines: LoopRecord['liveTranscript']; contactName: string }) {
   const [open, setOpen] = useState(false)
   return (
     <section className="overflow-hidden rounded-xl border border-ink-200 bg-white shadow-card">
@@ -485,7 +487,7 @@ function WrapUpTranscript({ lines }: { lines: LoopRecord['liveTranscript'] }) {
             const agent = l.speaker === 'agent'
             return (
               <div key={i} className={`flex flex-col ${agent ? 'items-end' : 'items-start'}`}>
-                <span className="mb-0.5 text-[10px] font-medium text-ink-400">{agent ? 'Maya (Agent)' : 'Caller'}</span>
+                <span className="mb-0.5 text-[10px] font-medium text-ink-400">{agent ? 'Maya (Agent)' : `${contactName} (Customer)`}</span>
                 <div
                   className={`max-w-[80%] rounded-2xl px-3 py-1.5 text-sm leading-relaxed ${
                     agent ? 'rounded-br-sm bg-brand-500 text-white' : 'rounded-bl-sm bg-white text-ink-900 shadow-card'

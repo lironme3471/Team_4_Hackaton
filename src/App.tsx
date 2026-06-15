@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { LOOP_RECORDS, SEED_HISTORY } from './data/mockData'
+import { getSentimentArc, getSentimentEmailGreeting, getSentimentEmailClosing } from './utils/sentimentCopy'
 import type { AgentPhase, CallHistoryEntry, LoopSummary } from './types'
 import { Sidebar } from './components/Sidebar'
 import { TopBar } from './components/TopBar'
@@ -29,7 +30,15 @@ function App() {
 
   // Per-call working state
   const [summaries, setSummaries] = useState<Record<string, LoopSummary>>(() =>
-    Object.fromEntries(LOOP_RECORDS.map((r) => [r.interaction.id, r.summary])),
+    Object.fromEntries(LOOP_RECORDS.map((r) => {
+      const arc = getSentimentArc(r.liveTranscript)
+      const firstName = r.contact.name.split(' ')[0]
+      return [r.interaction.id, {
+        ...r.summary,
+        greeting: getSentimentEmailGreeting(arc, firstName),
+        closing: getSentimentEmailClosing(arc),
+      }]
+    })),
   )
   const [sentIds, setSentIds] = useState<Set<string>>(new Set())
   const [disposition, setDisposition] = useState('')
@@ -66,7 +75,7 @@ function App() {
     setPhase('oncall')
   }
 
-  const newOutbound = () => startCall((activeIndex + 1) % LOOP_RECORDS.length)
+  const newOutbound = () => startCall(0)
   const hangUp = () => setPhase('acw')
   const onCallComplete = () => setPhase((p) => (p === 'oncall' ? 'acw' : p))
 

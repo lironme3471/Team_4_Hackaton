@@ -11,6 +11,53 @@ const EL_ENABLED = EL_KEY && EL_KEY !== 'your_api_key_here'
 const EL_VOICE_AGENT  = '21m00Tcm4TlvDq8ikWAM' // Rachel
 const EL_VOICE_CALLER = 'ErXwobaYiN019PkySvjV'  // Antoni
 
+type Sentiment = 'unhappy' | 'neutral' | 'happy'
+
+function SentimentIcon({ sentiment }: { sentiment: Sentiment }) {
+  const color = sentiment === 'happy' ? '#44a832' : sentiment === 'neutral' ? '#f5a623' : '#d0021b'
+  const sw = 2.2
+  const eyes = <>
+    <circle cx="9.5" cy="10.5" r="1.5" fill={color} />
+    <circle cx="14.5" cy="10.5" r="1.5" fill={color} />
+  </>
+  if (sentiment === 'happy') return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="10" stroke={color} strokeWidth={sw} />
+      {eyes}
+      <path d="M8 14.5 Q12 18.5 16 14.5" stroke={color} strokeWidth={sw} strokeLinecap="round" />
+    </svg>
+  )
+  if (sentiment === 'neutral') return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="10" stroke={color} strokeWidth={sw} />
+      {eyes}
+      <line x1="8" y1="15.5" x2="16" y2="15.5" stroke={color} strokeWidth={sw} strokeLinecap="round" />
+    </svg>
+  )
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="10" stroke={color} strokeWidth={sw} />
+      {eyes}
+      <path d="M8 17 Q12 13 16 17" stroke={color} strokeWidth={sw} strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function SentimentFace({ sentiment }: { sentiment: Sentiment | null }) {
+  if (!sentiment) return null
+  const cfg = {
+    unhappy: { bg: 'bg-red-50',    border: 'border-red-200',    text: 'text-red-600',    label: 'Unhappy'   },
+    neutral: { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-600', label: 'Neutral'   },
+    happy:   { bg: 'bg-green-50',  border: 'border-green-200',  text: 'text-green-700',  label: 'Satisfied' },
+  }[sentiment]
+  return (
+    <div className={`flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium transition-all duration-700 ${cfg.bg} ${cfg.border} ${cfg.text}`}>
+      <SentimentIcon sentiment={sentiment} />
+      {cfg.label}
+    </div>
+  )
+}
+
 /** Timer fallback (and inter-line gap) pacing, in ms, based on word count. */
 function dwellFor(text: string) {
   const words = text.split(/\s+/).length
@@ -35,10 +82,14 @@ export function LiveTranscript({
 }) {
   const [count, setCount] = useState(0)
   const [audioOn, setAudioOn] = useState(SPEECH_SUPPORTED)
+  const [sentiment, setSentiment] = useState<Sentiment | null>(null)
   const endRef = useRef<HTMLDivElement>(null)
   const voicesRef = useRef<SpeechSynthesisVoice[]>([])
   const audioElRef = useRef<HTMLAudioElement | null>(null)
   const finishedRef = useRef(false)
+  // Always-current ref so closures inside the streaming effect don't go stale.
+  const onFinishedRef = useRef(onFinished)
+  useEffect(() => { onFinishedRef.current = onFinished }, [onFinished])
   // Blob URLs cached per (restartKey, lineIndex) to avoid redundant ElevenLabs API calls.
   const elCacheRef = useRef<Map<string, string>>(new Map())
   const done = count >= lines.length
@@ -57,39 +108,43 @@ export function LiveTranscript({
   // Streaming driver — restarts on a new call or when audio is toggled.
   useEffect(() => {
     setCount(0)
+    setSentiment(null)
     finishedRef.current = false
     let idx = 0
     let cancelled = false
     let timer: ReturnType<typeof setTimeout>
     const synth = SPEECH_SUPPORTED ? window.speechSynthesis : null
 
-    // Pick the most natural-sounding voices the platform offers, then split
-    // them into a female voice for Maya and a male voice for the caller. The
-    // default system voices sound robotic, so we score every English voice on
-    // "naturalness" markers — macOS Premium/Enhanced and Siri voices, Edge's
-    // "Online (Natural)" neural voices, and Google's network voices — and
-    // prefer the highest-scoring one for each speaker.
-    const en = voicesRef.current.filter((v) => v.lang?.toLowerCase().startsWith('en'))
+    // Pick the most natural-sounding US voices. We restrict to en-US first
+    // (to avoid UK/AU accents), then score on naturalness markers. Aria is
+    // Microsoft's most expressive US female neural voice and is preferred for
+    // Maya; Guy is the matching US male neural voice for the caller.
+    const allEn = voicesRef.current.filter((v) => v.lang?.toLowerCase().startsWith('en'))
+    // Prefer en-US strictly; fall back to any English if nothing US is found.
+    const en = allEn.filter((v) => v.lang?.toLowerCase() === 'en-us').length > 0
+      ? allEn.filter((v) => v.lang?.toLowerCase() === 'en-us')
+      : allEn
     const naturalness = (v: SpeechSynthesisVoice) => {
       const n = v.name.toLowerCase()
       let score = 0
+      if (n.includes('aria')) score += 10        // Microsoft Aria — best US female neural voice
       if (n.includes('natural') || n.includes('neural')) score += 6
       if (n.includes('premium') || n.includes('enhanced')) score += 5
       if (n.includes('siri')) score += 5
       if (n.includes('online')) score += 3
       if (n.includes('google')) score += 3
-      if (!v.localService) score += 2 // network/cloud voices are usually higher fidelity
+      if (!v.localService) score += 2            // cloud/network voices are higher fidelity
       if (v.lang?.toLowerCase() === 'en-us') score += 1
       return score
     }
     const FEMALE = ['aria', 'jenny', 'samantha', 'ava', 'allison', 'zoe', 'victoria', 'karen', 'zira', 'female']
-    const MALE = ['guy', 'aaron', 'alex', 'tom', 'daniel', 'evan', 'david', 'fred', 'male']
+    const MALE = ['guy', 'aaron', 'alex', 'tom', 'evan', 'david', 'fred', 'male']
     const bestFor = (names: string[], exclude?: SpeechSynthesisVoice) => {
       const matches = en
         .filter((v) => v !== exclude && names.some((p) => v.name.toLowerCase().includes(p)))
         .sort((a, b) => naturalness(b) - naturalness(a))
       if (matches[0]) return matches[0]
-      // No gendered name matched — fall back to the most natural remaining voice.
+      // No gendered name matched — fall back to the most natural remaining US voice.
       return [...en].filter((v) => v !== exclude).sort((a, b) => naturalness(b) - naturalness(a))[0] ?? en[0]
     }
     const agentVoice = bestFor(FEMALE)
@@ -99,10 +154,23 @@ export function LiveTranscript({
       if (!cancelled) timer = setTimeout(revealNext, delay)
     }
 
+    // Schedule onFinished after the last line completes (audio or timer).
+    // Called from inside audio callbacks so the 3-second grace period starts
+    // AFTER the audio finishes, not when the last line starts playing.
+    const scheduleFinished = () => {
+      if (finishedRef.current) return
+      finishedRef.current = true
+      timer = setTimeout(() => { if (!cancelled) onFinishedRef.current?.() }, 3000)
+    }
+
     // Fallback speech path: speak via the Web Speech API, humanizing the flat
     // default prosody, or just time the reveal if speech isn't available.
     const speakSynth = (line: TranscriptLine, at: number) => {
-      if (!synth) return advance(dwellFor(line.text))
+      const isLast = at === lines.length - 1
+      if (!synth) {
+        if (isLast) return scheduleFinished()
+        return advance(dwellFor(line.text))
+      }
       const u = new SpeechSynthesisUtterance(line.text)
       const agent = line.speaker === 'agent'
       const v = agent ? agentVoice : customerVoice
@@ -116,8 +184,8 @@ export function LiveTranscript({
       const asks = /\?\s*$/.test(line.text)
       u.pitch = (agent ? 1.08 : 0.92) + jitter(0.05) + (asks ? 0.06 : 0)
       u.rate = (agent ? 1.03 : 0.97) + jitter(0.04)
-      u.onend = () => advance(300)
-      u.onerror = () => advance(dwellFor(line.text))
+      u.onend = () => { revealSentiment(); if (isLast) scheduleFinished(); else advance(300) }
+      u.onerror = () => { revealSentiment(); if (isLast) scheduleFinished(); else advance(dwellFor(line.text)) }
       // Chrome silently pauses synthesis after inactivity — resume before each utterance.
       synth.resume()
       synth.speak(u)
@@ -127,48 +195,77 @@ export function LiveTranscript({
       if (cancelled || idx >= lines.length) return
       const at = idx
       const line = lines[at]
+      const isLast = at === lines.length - 1
       idx += 1
       setCount(idx)
 
-      if (!audioOn) return advance(dwellFor(line.text))
+      // Reveal sentiment icon only after the line finishes playing,
+      // so the icon reflects what the agent just heard, not what's about to start.
+      const revealSentiment = () => { if (line.sentiment && !cancelled) setSentiment(line.sentiment as Sentiment) }
 
-      // --- ElevenLabs neural TTS (primary path) ---
-      if (EL_ENABLED) {
-        const cacheKey = `${restartKey}_${at}`
-        let blobUrl = elCacheRef.current.get(cacheKey)
-        if (!blobUrl) {
-          try {
-            const voiceId = line.speaker === 'agent' ? EL_VOICE_AGENT : EL_VOICE_CALLER
-            const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-              method: 'POST',
-              headers: { 'xi-api-key': EL_KEY, 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                text: line.text,
-                model_id: 'eleven_turbo_v2_5',
-                voice_settings: { stability: 0.5, similarity_boost: 0.8 },
-              }),
-            })
-            if (!res.ok) throw new Error(`ElevenLabs ${res.status}`)
-            const blob = await res.blob()
-            blobUrl = URL.createObjectURL(blob)
-            elCacheRef.current.set(cacheKey, blobUrl)
-          } catch {
-            // Fall through to Web Speech API below.
-          }
-        }
-        if (blobUrl && !cancelled) {
-          const el = new Audio(blobUrl)
-          audioElRef.current = el
-          el.onended = () => { if (!cancelled) advance(300) }
-          el.onerror  = () => { if (!cancelled) speakSynth(line, at) }
-          el.play().catch(() => { if (!cancelled) speakSynth(line, at) })
-          return
-        }
-        if (cancelled) return
+      if (!audioOn) {
+        revealSentiment()
+        if (isLast) return scheduleFinished()
+        return advance(dwellFor(line.text))
       }
 
-      // --- Web Speech API fallback ---
-      speakSynth(line, at)
+      // Priority 1: pre-generated Aria Neural clip (scripts/generate-call-audio.mjs)
+      // Priority 2: ElevenLabs live API (if key is set and plan supports it)
+      // Priority 3: Web Speech API
+      const playAudioEl = (src: string, onFail: () => void) => {
+        let guard_done = false
+        const guard = (fn: () => void) => () => { if (!guard_done) { guard_done = true; fn() } }
+        const el = new Audio(src)
+        audioElRef.current = el
+        el.onended = guard(() => {
+          if (!cancelled) {
+            revealSentiment()
+            if (isLast) scheduleFinished(); else advance(300)
+          }
+        })
+        el.onerror = guard(onFail)
+        el.play().catch(guard(onFail))
+      }
+
+      const fallbackToSynth = () => { if (!cancelled) speakSynth(line, at) }
+
+      const tryElevenLabs = async () => {
+        if (EL_ENABLED) {
+          const cacheKey = `${restartKey}_${at}`
+          let blobUrl = elCacheRef.current.get(cacheKey)
+          if (!blobUrl) {
+            try {
+              const voiceId = line.speaker === 'agent' ? EL_VOICE_AGENT : EL_VOICE_CALLER
+              const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+                method: 'POST',
+                headers: { 'xi-api-key': EL_KEY, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  text: line.text,
+                  model_id: 'eleven_turbo_v2_5',
+                  voice_settings: { stability: 0.5, similarity_boost: 0.8 },
+                }),
+              })
+              if (!res.ok) throw new Error(`ElevenLabs ${res.status}`)
+              const blob = await res.blob()
+              blobUrl = URL.createObjectURL(blob)
+              elCacheRef.current.set(cacheKey, blobUrl)
+            } catch {
+              // fall through
+            }
+          }
+          if (blobUrl && !cancelled) {
+            playAudioEl(blobUrl, fallbackToSynth)
+            return
+          }
+        }
+        if (!cancelled) fallbackToSynth()
+      }
+
+      // Try the pre-generated static clip first; fall back to ElevenLabs → synth.
+      playAudioEl(
+        `${import.meta.env.BASE_URL}audio/${restartKey}_${at}.mp3`,
+        () => { tryElevenLabs() },
+      )
     }
 
     timer = setTimeout(revealNext, 600)
@@ -193,12 +290,16 @@ export function LiveTranscript({
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
   }, [count])
 
-  // Once the conversation finishes, pause briefly so the last line is readable,
-  // then notify the parent (used to auto-advance the call into wrap-up).
+  // Safety-net fallback: if the audio path never fires scheduleFinished
+  // (e.g. browser blocks autoplay entirely), still advance after a long delay.
   useEffect(() => {
     if (!done || finishedRef.current) return
-    finishedRef.current = true
-    const t = setTimeout(() => onFinished?.(), 3000)
+    const t = setTimeout(() => {
+      if (!finishedRef.current) {
+        finishedRef.current = true
+        onFinished?.()
+      }
+    }, 30000)
     return () => clearTimeout(t)
   }, [done, onFinished])
 
@@ -213,6 +314,7 @@ export function LiveTranscript({
           <h3 className="text-sm font-semibold text-ink-900">Live Transcription</h3>
         </div>
         <div className="flex items-center gap-2">
+          <SentimentFace sentiment={sentiment} />
           <span className="text-[10px] font-medium uppercase tracking-wide text-ink-400">AI speech-to-text</span>
           {SPEECH_SUPPORTED && (
             <button

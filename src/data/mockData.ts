@@ -36,19 +36,19 @@ export const LOOP_RECORDS: LoopRecord[] = [
     insightHeadline:
       'Billing dispute resolved, but autopay is still pointed at the expired card — a repeat charge failure is likely within 6 days.',
     liveTranscript: [
-      { speaker: 'agent', text: 'Thanks for calling billing support, this is Maya. How can I help?' },
-      { speaker: 'customer', text: 'Hi, I think I’ve been charged twice for my plan this month.' },
-      { speaker: 'agent', text: 'I’m sorry to hear that. Let me pull up your account — can you confirm your email?' },
-      { speaker: 'customer', text: 'Sure, it’s daniel at whitfield design dot com.' },
-      { speaker: 'agent', text: 'Got it, thank you. One moment while I open your June invoice.' },
-      { speaker: 'agent', text: 'Okay, I see two $49 charges dated June 1st — that’s a duplicate on our end.' },
-      { speaker: 'customer', text: 'Right, that’s what I thought. And there’s a late fee too.' },
-      { speaker: 'agent', text: 'I see the $12 late fee. I’ll waive that and refund one $49 charge right now.' },
-      { speaker: 'customer', text: 'Thank you, I really appreciate it.' },
-      { speaker: 'agent', text: 'All done — the refund posts in three to five business days and the fee is removed.' },
-      { speaker: 'agent', text: 'One more thing — I noticed your Visa ending 4417 expired in May. Before your next charge on June 15th, could you update your payment method?' },
-      { speaker: 'customer', text: 'Oh, good catch! I\'ll update that right now.' },
-      { speaker: 'agent', text: 'Perfect. You\'ll receive a summary of our call via email along with a brief feedback survey. We\'d genuinely appreciate your feedback — it helps us get better every day.' },
+      { speaker: "agent",    text: "Thanks for calling billing support, this is Maya. How can I help?" },
+      { speaker: "customer", text: "Finally! I’ve been trying to reach someone for three days. I was charged twice this month and nobody seems to care. This is completely unacceptable.", sentiment: "unhappy" },
+      { speaker: "agent",    text: "I completely understand your frustration, Daniel, and I’m truly sorry for the wait. Let me pull up your account right now — can you confirm your email address?" },
+      { speaker: "customer", text: "It’s daniel.whitfield@design.com. And I also have a late fee on top of the double charge.", sentiment: "unhappy" },
+      { speaker: "agent",    text: "Got it, thank you. One moment while I open your June invoice." },
+      { speaker: "agent",    text: "Okay, I can see two $49 charges dated June 1st — that’s definitely a duplicate on our end. I’m sorry that happened." },
+      { speaker: "customer", text: "Right, exactly. I shouldn’t have to chase this down myself.", sentiment: "neutral" },
+      { speaker: "agent",    text: "You’re absolutely right, and I apologise. I’m waiving the $12 late fee and issuing a full $49 refund right now." },
+      { speaker: "customer", text: "Okay... thank you. I appreciate you actually fixing it.", sentiment: "neutral" },
+      { speaker: "agent",    text: "All done — the refund posts in three to five business days and the late fee is already removed from your account." },
+      { speaker: "agent",    text: "One more thing — I noticed your Visa ending 4417 expired in May. Before your next charge on June 15th, could you update your payment method?" },
+      { speaker: "customer", text: "Oh, good catch! I’ll update that right now. Thanks for flagging it.", sentiment: "happy" },
+      { speaker: "agent",    text: "Perfect. You’ll receive a summary of our call via email along with a brief feedback survey. We’d genuinely appreciate your feedback — it helps us get better every day." },
     ],
     interaction: {
       id: 'int-7781',
@@ -123,6 +123,7 @@ export const LOOP_RECORDS: LoopRecord[] = [
       resolved: [
         'Confirmed the duplicate $49 charge on your June invoice.',
         'Issued a full $49 refund (3–5 business days to your Visa).',
+        'Waived the $12 late fee — removed from your account immediately.',
       ],
       nextSteps: [
         'Your refund confirmation will arrive by email within 24 hours.',
@@ -131,16 +132,16 @@ export const LOOP_RECORDS: LoopRecord[] = [
       followUps: [
         {
           id: 'f-1',
-          text: 'Update the payment method on file — the card ending 4417 expired 05/26.',
-          owner: 'Customer',
-          due: 'Before 06/15',
+          text: 'Verify the $49 refund posted to Daniel\'s Visa and close the dispute ticket.',
+          owner: 'Agent',
+          due: '06/14',
           done: false,
         },
         {
           id: 'f-2',
-          text: 'Agent to verify refund posted and close the dispute ticket.',
+          text: 'Confirm Daniel updated his payment method before the 06/15 billing run.',
           owner: 'Agent',
-          due: '06/13',
+          due: '06/14',
           done: false,
         },
       ],
@@ -163,8 +164,6 @@ export const LOOP_RECORDS: LoopRecord[] = [
         reasoning:
           'Negative sentiment on a billing issue plus a 3–5 day refund window historically drives a "where is my refund?" check-in around day 3.',
         suggestedAction: 'Send a proactive "refund is on its way" note on 06/12 to pre-empt the call.',
-        customerTip:
-          'Your $49 refund is already on its way and should land in 3–5 business days — no need to check in, we’ll email you the moment it posts.',
       },
     ],
   },

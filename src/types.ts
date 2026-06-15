@@ -30,6 +30,8 @@ export interface Message {
 export interface TranscriptLine {
   speaker: 'agent' | 'customer'
   text: string
+  /** Customer sentiment at this point in the call. Only meaningful on customer lines. */
+  sentiment?: 'unhappy' | 'neutral' | 'happy'
 }
 
 export interface Contact {
