@@ -122,7 +122,6 @@ export const LOOP_RECORDS: LoopRecord[] = [
       resolved: [
         'Confirmed the duplicate $49 charge on your June invoice.',
         'Issued a full $49 refund (3–5 business days to your Visa).',
-        'Waived the $12 late fee applied in error.',
       ],
       nextSteps: [
         'Your refund confirmation will arrive by email within 24 hours.',

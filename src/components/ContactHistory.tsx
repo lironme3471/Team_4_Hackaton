@@ -30,11 +30,14 @@ export function ContactHistory({
                 title="Start a new call"
                 className="min-w-0 flex-1 text-left"
               >
-                <div className="text-sm font-semibold text-ink-900">{e.phone}</div>
+                <div className="text-sm font-semibold text-ink-900">
+                  {e.loopRecord?.contact.name || e.phone}
+                </div>
                 <div className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-500">
                   <Dir className="h-4 w-4 text-violet-600" />
-                  {e.skill}
+                  {e.phone}
                 </div>
+                <div className="mt-0.5 text-xs text-ink-500">{e.skill}</div>
               </button>
               <div className="border-l border-ink-200 pl-4 text-right">
                 <div className="text-xs tabular-nums text-ink-700">{e.dateTime}</div>
