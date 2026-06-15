@@ -21,6 +21,7 @@ export const PhoneIcon = make(['M2 4.5C2 3.7 2.7 3 3.5 3h2.4c.6 0 1.2.4 1.4 1l1 
 export const ChatIcon = make(['M4 5h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H9l-4 4v-4H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z'])
 export const EmailIcon = make(['M3 5h18v14H3z', 'm3 7 9 6 9-6'])
 export const SmsIcon = make(['M4 5h16a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-7l-5 4v-4H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z', 'M8 10h.01M12 10h.01M16 10h.01'])
+export const WhatsAppIcon = make(['M21 11.5a8.5 8.5 0 0 1-12.8 7.3L3 20.5l1.8-5A8.5 8.5 0 1 1 21 11.5Z', 'M9 8.7c0 3.5 2.8 6.3 6.3 6.3.6 0 1-.6.8-1.1l-.4-1.1a.8.8 0 0 0-.9-.5l-1 .2a4.8 4.8 0 0 1-2.4-2.4l.2-1a.8.8 0 0 0-.5-.9l-1.1-.4c-.5-.2-1.1.2-1.1.8Z'])
 
 // Nav rail + toolbar icons
 export const HistoryIcon = make(['M3 12a9 9 0 1 0 3-6.7M3 4v3h3', 'M12 8v4l3 2'])
@@ -37,6 +38,7 @@ export const ListAppIcon = make(['M8 6h13M8 12h13M8 18h13', 'M3 6h.01M3 12h.01M3
 export const ContactCardIcon = make(['M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z', 'M9 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM6 16c.5-1.5 5-1.5 5.5 0', 'M14 9h4M14 12h4M14 15h2'])
 export const AddressIcon = make(['M6 4h12a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z', 'M13 10a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0ZM9 15c.5-1.3 4.5-1.3 5 0', 'M3 8H5M3 12H5M3 16H5'])
 export const LightningIcon = make(['M13 2 4 14h6l-1 8 9-12h-6l1-8Z'])
+export const EyeIcon = make(['M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z', 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z'])
 
 // Top bar
 export const HelpIcon = make(['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z', 'M9.5 9a2.5 2.5 0 0 1 4.5 1.5c0 1.7-2 2-2 3.5', 'M12 17h.01'])
@@ -77,6 +79,8 @@ export function ChannelIcon({ channel, className }: { channel: Channel; classNam
       return <ChatIcon className={className} />
     case 'email':
       return <EmailIcon className={className} />
+    case 'whatsapp':
+      return <WhatsAppIcon className={className} />
     default:
       return <SmsIcon className={className} />
   }

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { LOOP_RECORDS, SEED_HISTORY } from './data/mockData'
-import type { AgentPhase, CallHistoryEntry, Channel, LoopSummary } from './types'
+import type { AgentPhase, CallHistoryEntry, LoopSummary } from './types'
 import { Sidebar } from './components/Sidebar'
 import { TopBar } from './components/TopBar'
 import { CallPanel } from './components/CallPanel'
@@ -48,7 +48,7 @@ function App() {
       followUps: [...summary.followUps, { id: `f-${followUpSeq++}`, text, owner: 'Agent', done: false }],
     })
 
-  const send = (_channel: Channel) =>
+  const send = () =>
     setSentIds((prev) => new Set(prev).add(record.interaction.id))
 
   // ---- call lifecycle transitions ----
