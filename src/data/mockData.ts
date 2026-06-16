@@ -19,11 +19,11 @@ export const DISPOSITIONS = [
 
 /** Seed of recently closed calls shown in the Contact History list. */
 export const SEED_HISTORY: CallHistoryEntry[] = [
-  { id: 'ch-1', phone: '+1 (415) 555-0142', skill: 'Billing • Tier 2', direction: 'inbound', dateTime: '06/10/26 08:31', status: 'Closed' },
-  { id: 'ch-2', phone: '+1 (628) 555-0193', skill: 'Billing • Tier 1', direction: 'inbound', dateTime: '06/10/26 08:30', status: 'Closed' },
-  { id: 'ch-3', phone: '+1 (415) 555-0142', skill: 'Billing • Tier 2', direction: 'inbound', dateTime: '06/09/26 16:57', status: 'Closed' },
-  { id: 'ch-4', phone: '+1 (773) 555-0164', skill: 'Billing • Disputes', direction: 'outbound', dateTime: '06/09/26 16:56', status: 'Closed' },
-  { id: 'ch-5', phone: '+1 (628) 555-0193', skill: 'Billing • Tier 1', direction: 'inbound', dateTime: '06/08/26 10:49', status: 'Closed' },
+  { id: 'ch-1', phone: '+1 (415) 555-0142', skill: 'Billing • Tier 2', direction: 'inbound', dateTime: '06/16/26 08:31', status: 'Closed' },
+  { id: 'ch-2', phone: '+1 (628) 555-0193', skill: 'Billing • Tier 1', direction: 'inbound', dateTime: '06/16/26 08:30', status: 'Closed' },
+  { id: 'ch-3', phone: '+1 (415) 555-0142', skill: 'Billing • Tier 2', direction: 'inbound', dateTime: '06/15/26 16:57', status: 'Closed' },
+  { id: 'ch-4', phone: '+1 (773) 555-0164', skill: 'Billing • Disputes', direction: 'outbound', dateTime: '06/15/26 16:56', status: 'Closed' },
+  { id: 'ch-5', phone: '+1 (628) 555-0193', skill: 'Billing • Tier 1', direction: 'inbound', dateTime: '06/14/26 10:49', status: 'Closed' },
 ]
 
 /**
@@ -34,7 +34,7 @@ export const SEED_HISTORY: CallHistoryEntry[] = [
 export const LOOP_RECORDS: LoopRecord[] = [
   {
     insightHeadline:
-      'Billing dispute resolved, but autopay is still pointed at the expired card — a repeat charge failure is likely within 6 days.',
+      'Billing dispute resolved, but autopay is still pointed at the expired card — a repeat charge failure is likely within 4 days.',
     liveTranscript: [
       { speaker: "agent",    text: "Thanks for calling billing support, this is Maya. How can I help?" },
       { speaker: "customer", text: "Finally! I’ve been trying to reach someone for three days. I was charged twice this month and nobody seems to care. This is completely unacceptable.", sentiment: "unhappy" },
@@ -46,7 +46,7 @@ export const LOOP_RECORDS: LoopRecord[] = [
       { speaker: "agent",    text: "You’re absolutely right, and I apologise. I’m waiving the $12 late fee and issuing a full $49 refund right now." },
       { speaker: "customer", text: "Okay... thank you. I appreciate you actually fixing it.", sentiment: "neutral" },
       { speaker: "agent",    text: "All done — the refund posts in three to five business days and the late fee is already removed from your account." },
-      { speaker: "agent",    text: "One more thing — I noticed your Visa ending 4417 expired in May. Before your next charge on June 15th, could you update your payment method?" },
+      { speaker: "agent",    text: "One more thing — I noticed your Visa ending 4417 expired in May. Before your next charge on June 20th, could you update your payment method?" },
       { speaker: "customer", text: "Oh, good catch! I’ll update that right now. Thanks for flagging it.", sentiment: "happy" },
       { speaker: "agent",    text: "Perfect. You’ll receive a summary of our call via email along with a brief feedback survey. We’d genuinely appreciate your feedback — it helps us get better every day." },
     ],
@@ -57,7 +57,7 @@ export const LOOP_RECORDS: LoopRecord[] = [
       direction: 'inbound',
       skill: 'Billing • Tier 2',
       status: 'wrap-up',
-      startedAt: '2026-06-09T14:32:00Z',
+      startedAt: '2026-06-16T14:32:00Z',
       durationSec: 612,
       subject: 'Double charge on June invoice',
       contactRef: '#318024113',
@@ -116,7 +116,7 @@ export const LOOP_RECORDS: LoopRecord[] = [
       { source: 'Billing', label: 'June invoice', value: '$98.00 → $49.00 refunded', status: 'ok' },
       { source: 'Billing', label: 'Payment method', value: 'Visa •4417 — expired 05/26', status: 'danger' },
       { source: 'Subscription', label: 'Plan', value: 'Pro (annual) • renews 03/2027', status: 'ok' },
-      { source: 'Billing', label: 'Autopay', value: 'Enabled — next run 06/15', status: 'warn' },
+      { source: 'Billing', label: 'Autopay', value: 'Enabled — next run 06/20', status: 'warn' },
     ],
     summary: {
       greeting: 'Hi Daniel, thanks for your patience today — here’s a recap of our call.',
@@ -134,14 +134,7 @@ export const LOOP_RECORDS: LoopRecord[] = [
           id: 'f-1',
           text: 'Verify the $49 refund posted to Daniel\'s Visa and close the dispute ticket.',
           owner: 'Agent',
-          due: '06/14',
-          done: false,
-        },
-        {
-          id: 'f-2',
-          text: 'Confirm Daniel updated his payment method before the 06/15 billing run.',
-          owner: 'Agent',
-          due: '06/14',
+          due: '06/19',
           done: false,
         },
       ],
@@ -152,18 +145,18 @@ export const LOOP_RECORDS: LoopRecord[] = [
         title: 'Autopay will fail on the next billing run',
         likelihood: 86,
         reasoning:
-          'Autopay is enabled and scheduled for 06/15, but the only payment method on file (Visa •4417) expired 05/26. The customer was already warned about this in April but did not update it.',
+          'Autopay is enabled and scheduled for 06/20, but the only payment method on file (Visa •4417) expired 05/26. The customer was already warned about this in April but did not update it.',
         suggestedAction:
-          'Proactively include a one-tap "Update card" link in the summary and flag the account for a payment-method reminder on 06/13.',
+          'Proactively include a one-tap "Update card" link in the summary and flag the account for a payment-method reminder on 06/18.',
         customerTip:
-          'Heads-up: the card on file (Visa ending 4417) expired in May. Updating it before June 15 will keep autopay running smoothly and avoid a missed-payment hiccup.',
+          'Heads-up: the card on file (Visa ending 4417) expired in May. Updating it before June 20 will keep autopay running smoothly and avoid a missed-payment hiccup.',
       },
       {
         title: 'Refund-timing follow-up contact',
         likelihood: 41,
         reasoning:
           'Negative sentiment on a billing issue plus a 3–5 day refund window historically drives a "where is my refund?" check-in around day 3.',
-        suggestedAction: 'Send a proactive "refund is on its way" note on 06/12 to pre-empt the call.',
+        suggestedAction: 'Send a proactive "refund is on its way" note on 06/19 to pre-empt the call.',
       },
     ],
   },
@@ -189,7 +182,7 @@ export const LOOP_RECORDS: LoopRecord[] = [
       direction: 'inbound',
       skill: 'Billing • Tier 1',
       status: 'wrap-up',
-      startedAt: '2026-06-10T09:05:00Z',
+      startedAt: '2026-06-16T09:05:00Z',
       durationSec: 421,
       subject: 'Card declined — service suspended',
       contactRef: '#318024207',
@@ -237,8 +230,8 @@ export const LOOP_RECORDS: LoopRecord[] = [
     ],
     connected: [
       { source: 'Billing', label: 'Last payment', value: '$79.00 declined 06/07 (insufficient funds)', status: 'danger' },
-      { source: 'Billing', label: 'Account status', value: 'Suspended → Reactivated 06/10', status: 'ok' },
-      { source: 'Billing', label: 'Payment method', value: 'Mastercard •8821 — updated 06/10', status: 'ok' },
+      { source: 'Billing', label: 'Account status', value: 'Suspended → Reactivated 06/16', status: 'ok' },
+      { source: 'Billing', label: 'Payment method', value: 'Mastercard •8821 — updated 06/16', status: 'ok' },
       { source: 'Subscription', label: 'Plan', value: 'Business (monthly) • renews 07/01', status: 'warn' },
     ],
     summary: {
@@ -312,7 +305,7 @@ export const LOOP_RECORDS: LoopRecord[] = [
       direction: 'inbound',
       skill: 'Billing • Disputes',
       status: 'wrap-up',
-      startedAt: '2026-06-10T09:40:00Z',
+      startedAt: '2026-06-16T09:40:00Z',
       durationSec: 538,
       subject: 'Bill jumped after promo ended',
       contactRef: '#318024256',

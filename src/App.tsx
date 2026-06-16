@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { LOOP_RECORDS, SEED_HISTORY } from './data/mockData'
 import { getSentimentArc, getSentimentEmailGreeting, getSentimentEmailClosing } from './utils/sentimentCopy'
+import { clearFeedback } from './lib/feedback'
 import type { AgentPhase, CallHistoryEntry, LoopSummary } from './types'
 import { Sidebar } from './components/Sidebar'
 import { TopBar } from './components/TopBar'
@@ -20,6 +21,9 @@ function nowLabel() {
   const p = (n: number) => n.toString().padStart(2, '0')
   return `${p(d.getMonth() + 1)}/${p(d.getDate())}/${p(d.getFullYear() % 100)} ${p(d.getHours())}:${p(d.getMinutes())}`
 }
+
+// Clear any stale feedback from previous prototype sessions on load.
+clearFeedback()
 
 function App() {
   // Start in wrap-up (ACW) so CX Loop is front and center on load.
@@ -72,6 +76,7 @@ function App() {
       next.delete(LOOP_RECORDS[index].interaction.id)
       return next
     })
+    clearFeedback()
     setPhase('oncall')
   }
 
