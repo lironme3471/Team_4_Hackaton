@@ -165,7 +165,7 @@ export function LiveTranscript({
 
     // Fallback speech path: speak via the Web Speech API, humanizing the flat
     // default prosody, or just time the reveal if speech isn't available.
-    const speakSynth = (line: TranscriptLine, at: number) => {
+    const speakSynth = (line: TranscriptLine, at: number, revealSentiment: () => void) => {
       const isLast = at === lines.length - 1
       if (!synth) {
         if (isLast) return scheduleFinished()
@@ -227,7 +227,7 @@ export function LiveTranscript({
         el.play().catch(guard(onFail))
       }
 
-      const fallbackToSynth = () => { if (!cancelled) speakSynth(line, at) }
+      const fallbackToSynth = () => { if (!cancelled) speakSynth(line, at, revealSentiment) }
 
       const tryElevenLabs = async () => {
         if (EL_ENABLED) {
