@@ -3,7 +3,6 @@ import type { Contact, LoopSummary, TranscriptLine } from '../types'
 import type { Survey } from '../lib/survey'
 import { AGENT } from '../data/mockData'
 import { SurveyCard } from './SurveyCard'
-import { CalendarWidget } from './CalendarWidget'
 
 const BRAND = 'CX Loop'
 const FROM_EMAIL = 'support@cxloop.com'
@@ -76,7 +75,8 @@ export function EmailPreview({
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const subject = `Recap of your call with ${BRAND} — what we resolved & next steps`
+  const firstName = contact.name.split(' ')[0]
+  const subject = `${firstName}, here's a recap of your call with ${BRAND}`
   const hasAttachments = transcript || includeRecording
 
   return (
@@ -140,9 +140,13 @@ export function EmailPreview({
                 </button>
               )}
               {includeRecording && (
-                <span className="flex items-center gap-1.5 rounded border border-ink-200 bg-ink-50 px-2.5 py-1 text-xs text-ink-700">
+                <a
+                  href={`${import.meta.env.BASE_URL}audio/call-${interactionId}.mp3`}
+                  download={`call-recording-${interactionId}.mp3`}
+                  className="flex items-center gap-1.5 rounded border border-ink-200 bg-ink-50 px-2.5 py-1 text-xs text-ink-700 hover:bg-ink-100"
+                >
                   <span>🎙</span> call-recording-{interactionId}.mp3
-                </span>
+                </a>
               )}
             </div>
           )}
@@ -185,33 +189,6 @@ export function EmailPreview({
                   ))}
                 </ul>
               </div>
-
-              {summary.followUps.length > 0 && (
-                <div className="rounded-lg border border-ink-200 bg-ink-100/50 p-3">
-                  <h2 className="mb-1 text-xs font-bold uppercase tracking-wide text-ink-500">A few open items</h2>
-                  <ul className="space-y-1">
-                    {summary.followUps.map((f) => (
-                      <li key={f.id} className="flex gap-2 text-[13px]">
-                        <span className="text-ink-400">•</span>
-                        <span>
-                          {f.text}
-                          {f.due && (
-                            <span className="text-ink-400">
-                              {' '}
-                              — by{' '}
-                              <CalendarWidget
-                                followUpText={f.text}
-                                dueDate={f.due}
-                                interactionId={interactionId}
-                              />
-                            </span>
-                          )}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
 
               {tips.length > 0 && (
                 <div className="rounded-lg border border-[#1a73e8]/20 bg-[#1a73e8]/5 p-3">
@@ -259,11 +236,29 @@ export function EmailPreview({
                     {includeRecording && (
                       <li className="flex items-start gap-2">
                         <span className="mt-0.5 text-base leading-none">🎙</span>
-                        <div>
-                          <span className="text-sm font-medium text-[#1a73e8]">
-                            call-recording-{interactionId}.mp3
-                          </span>
-                          <p className="text-[11px] text-ink-400">Call recording — secure link, available for 30 days</p>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3">
+                            <a
+                              href={`${import.meta.env.BASE_URL}audio/call-${interactionId}.mp3`}
+                              download={`call-recording-${interactionId}.mp3`}
+                              className="text-sm font-medium text-[#1a73e8] hover:underline"
+                            >
+                              call-recording-{interactionId}.mp3
+                            </a>
+                            <a
+                              href={`${import.meta.env.BASE_URL}audio/call-${interactionId}.mp3`}
+                              download={`call-recording-${interactionId}.mp3`}
+                              className="shrink-0 rounded border border-[#1a73e8]/30 px-2 py-0.5 text-[10px] font-semibold text-[#1a73e8] hover:bg-[#1a73e8]/5"
+                            >
+                              ↓ Download
+                            </a>
+                          </div>
+                          <audio
+                            controls
+                            src={`${import.meta.env.BASE_URL}audio/call-${interactionId}.mp3`}
+                            className="mt-2 h-8 w-full"
+                          />
+                          <p className="mt-1 text-[11px] text-ink-400">Call recording — available for 30 days</p>
                         </div>
                       </li>
                     )}

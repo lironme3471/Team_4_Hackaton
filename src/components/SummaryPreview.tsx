@@ -5,6 +5,7 @@ import { AGENT } from '../data/mockData'
 import { EmailPreview } from './EmailPreview'
 import { SurveyModal } from './SurveyCard'
 import { WhatsAppIcon } from './icons'
+import { getSentimentArc, getSentimentBrief } from '../utils/sentimentCopy'
 
 const BRAND = 'CX Loop'
 
@@ -12,17 +13,49 @@ function firstName(contact: Contact) {
   return contact.name.split(' ')[0]
 }
 
+function audioUrl(interactionId: string) {
+  return `${import.meta.env.BASE_URL}audio/call-${interactionId}.mp3`
+}
+
+function transcriptText(lines: TranscriptLine[], interactionId: string): string {
+  return lines.map((l) => `${l.speaker === 'agent' ? 'Agent' : 'Caller'}: ${l.text}`).join('\n')
+}
+
+function downloadTranscriptFile(lines: TranscriptLine[], interactionId: string) {
+  const blob = new Blob([transcriptText(lines, interactionId)], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `call-transcript-${interactionId}.txt`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 /**
  * Builds the short, plain-text body used for SMS — one segment where possible,
  * with a link to the richer email recap rather than the full content.
  */
-function buildSmsText(contact: Contact, summary: LoopSummary, tips: string[], survey?: Survey) {
+function buildSmsText(
+  contact: Contact,
+  summary: LoopSummary,
+  tips: string[],
+  sentimentLines: TranscriptLine[] | undefined,
+  transcript: TranscriptLine[] | undefined,
+  includeRecording: boolean | undefined,
+  interactionId: string,
+  survey?: Survey,
+) {
+  const arc = getSentimentArc(sentimentLines ?? [])
+  const brief = getSentimentBrief(arc)
   const resolved = summary.resolved[0] ?? 'your request'
   const next = summary.nextSteps[0]
-  let msg = `${BRAND}: Hi ${firstName(contact)}, thanks for contacting us. Resolved: ${resolved}.`
+  let msg = `${BRAND}: Hi ${firstName(contact)}, thanks for contacting us.`
+  if (brief) msg += ` ${brief}`
+  msg += ` Resolved: ${resolved}.`
   if (next) msg += ` Next: ${next}.`
   if (tips[0]) msg += ` Tip: ${tips[0]}`
-  msg += ` Full recap sent to your email.`
+  if (transcript) msg += ` 📄 Transcript: cxloop.com/files/transcript-${interactionId}.txt`
+  if (includeRecording) msg += ` 🎙 Recording: cxloop.com/files/call-${interactionId}.mp3`
   if (survey) msg += ` Rate us (${survey.duration}): ${survey.url}`
   msg += ` Reply STOP to opt out.`
   return msg
@@ -42,6 +75,7 @@ export function SummaryPreview({
   tips = [],
   survey,
   interactionId,
+  sentimentLines,
   transcript,
   includeRecording,
   onClose,
@@ -52,6 +86,7 @@ export function SummaryPreview({
   tips?: string[]
   survey?: Survey
   interactionId: string
+  sentimentLines?: TranscriptLine[]
   transcript?: TranscriptLine[]
   includeRecording?: boolean
   onClose: () => void
@@ -71,9 +106,33 @@ export function SummaryPreview({
     )
   }
   if (channel === 'whatsapp') {
-    return <WhatsAppPreview contact={contact} summary={summary} tips={tips} survey={survey} interactionId={interactionId} onClose={onClose} />
+    return (
+      <WhatsAppPreview
+        contact={contact}
+        summary={summary}
+        tips={tips}
+        survey={survey}
+        interactionId={interactionId}
+        sentimentLines={sentimentLines}
+        transcript={transcript}
+        includeRecording={includeRecording}
+        onClose={onClose}
+      />
+    )
   }
-  return <SmsPreview contact={contact} summary={summary} tips={tips} survey={survey} interactionId={interactionId} onClose={onClose} />
+  return (
+    <SmsPreview
+      contact={contact}
+      summary={summary}
+      tips={tips}
+      survey={survey}
+      interactionId={interactionId}
+      sentimentLines={sentimentLines}
+      transcript={transcript}
+      includeRecording={includeRecording}
+      onClose={onClose}
+    />
+  )
 }
 
 /** Shared modal shell: dim backdrop, Esc / backdrop-click to close. */
@@ -106,12 +165,17 @@ function CloseBar({ onClose }: { onClose: () => void }) {
 
 /* ---------------- SMS ---------------- */
 
-function SmsPreview({ contact, summary, tips, survey, interactionId, onClose }: { contact: Contact; summary: LoopSummary; tips: string[]; survey?: Survey; interactionId: string; onClose: () => void }) {
+function SmsPreview({
+  contact, summary, tips, survey, interactionId, sentimentLines, transcript, includeRecording, onClose,
+}: {
+  contact: Contact; summary: LoopSummary; tips: string[]; survey?: Survey
+  interactionId: string; sentimentLines?: TranscriptLine[]; transcript?: TranscriptLine[]; includeRecording?: boolean; onClose: () => void
+}) {
   const [surveyOpen, setSurveyOpen] = useState(false)
-  const text = buildSmsText(contact, summary, tips, survey)
+  const text = buildSmsText(contact, summary, tips, sentimentLines, transcript, includeRecording, interactionId, survey)
   const segments = Math.ceil(text.length / SMS_SEGMENT)
-  // Split the message around the survey URL so it can render as a tappable link.
   const [before, after] = survey ? text.split(survey.url) : [text, '']
+  const hasAttachments = transcript || includeRecording
 
   return (
     <PreviewShell onClose={onClose}>
@@ -146,6 +210,42 @@ function SmsPreview({ contact, summary, tips, survey, interactionId, onClose }: 
             </div>
           </div>
           <div className="text-right text-[10px] text-ink-400">Delivered</div>
+
+          {/* Inline download links rendered below the bubble for the prototype */}
+          {hasAttachments && (
+            <div className="flex flex-col gap-1.5 pt-1">
+              {transcript && (
+                <button
+                  onClick={() => downloadTranscriptFile(transcript, interactionId)}
+                  className="flex items-center gap-2 rounded-xl border border-ink-200 bg-ink-50 px-3 py-2 text-left text-xs text-ink-700 hover:bg-ink-100"
+                >
+                  <span className="text-base">📄</span>
+                  <div>
+                    <div className="font-medium">call-transcript-{interactionId}.txt</div>
+                    <div className="text-[10px] text-ink-400">Tap to download</div>
+                  </div>
+                </button>
+              )}
+              {includeRecording && (
+                <div className="rounded-xl border border-ink-200 bg-ink-50 px-3 py-2">
+                  <div className="mb-1.5 flex items-center gap-2">
+                    <span className="text-base">🎙</span>
+                    <div>
+                      <a
+                        href={audioUrl(interactionId)}
+                        download={`call-recording-${interactionId}.mp3`}
+                        className="text-xs font-medium text-[#0b93f6] hover:underline"
+                      >
+                        call-recording-{interactionId}.mp3
+                      </a>
+                      <div className="text-[10px] text-ink-400">Tap to download</div>
+                    </div>
+                  </div>
+                  <audio controls src={audioUrl(interactionId)} className="h-8 w-full" />
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Compose bar (decorative) + meta */}
@@ -167,8 +267,17 @@ function SmsPreview({ contact, summary, tips, survey, interactionId, onClose }: 
 
 /* ---------------- WhatsApp ---------------- */
 
-function WhatsAppPreview({ contact, summary, tips, survey, interactionId, onClose }: { contact: Contact; summary: LoopSummary; tips: string[]; survey?: Survey; interactionId: string; onClose: () => void }) {
+function WhatsAppPreview({
+  contact, summary, tips, survey, interactionId, sentimentLines, transcript, includeRecording, onClose,
+}: {
+  contact: Contact; summary: LoopSummary; tips: string[]; survey?: Survey
+  interactionId: string; sentimentLines?: TranscriptLine[]; transcript?: TranscriptLine[]; includeRecording?: boolean; onClose: () => void
+}) {
   const [surveyOpen, setSurveyOpen] = useState(false)
+  const hasAttachments = transcript || includeRecording
+  const arc = getSentimentArc(sentimentLines ?? [])
+  const brief = getSentimentBrief(arc)
+
   return (
     <PreviewShell onClose={onClose}>
       <div className="flex w-[380px] max-w-full flex-col overflow-hidden rounded-2xl bg-white shadow-panel ring-1 ring-black/10">
@@ -185,13 +294,14 @@ function WhatsAppPreview({ contact, summary, tips, survey, interactionId, onClos
 
         {/* Chat area */}
         <div
-          className="scrollbar-thin max-h-[60vh] space-y-2 overflow-y-auto px-4 py-4"
+          className="scrollbar-thin max-h-[70vh] space-y-2 overflow-y-auto px-4 py-4"
           style={{ backgroundColor: '#ece5dd' }}
         >
           <div className="ml-auto max-w-[88%]">
             <div className="rounded-lg rounded-tr-sm bg-[#dcf8c6] px-3 py-2 text-[13px] leading-relaxed text-ink-900 shadow-sm">
               <p className="font-semibold">{BRAND} — your call recap ✅</p>
               <p className="mt-1.5">Hi {firstName(contact)} 👋</p>
+              {brief && <p className="mt-1 text-ink-700 italic">{brief}</p>}
 
               <p className="mt-2 font-semibold">What we resolved</p>
               {summary.resolved.map((r, i) => (
@@ -202,18 +312,6 @@ function WhatsAppPreview({ contact, summary, tips, survey, interactionId, onClos
               {summary.nextSteps.map((s, i) => (
                 <p key={i}>➡️ {s}</p>
               ))}
-
-              {summary.followUps.length > 0 && (
-                <>
-                  <p className="mt-2 font-semibold">Open items</p>
-                  {summary.followUps.map((f) => (
-                    <p key={f.id}>
-                      • {f.text}
-                      {f.due && ` (by ${f.due})`}
-                    </p>
-                  ))}
-                </>
-              )}
 
               {tips.length > 0 && (
                 <>
@@ -247,6 +345,48 @@ function WhatsAppPreview({ contact, summary, tips, survey, interactionId, onClos
                 {whatsAppTime()} ✓✓
               </div>
             </div>
+
+            {/* Attachment cards — rendered as separate WhatsApp file/audio bubbles */}
+            {hasAttachments && (
+              <div className="mt-2 space-y-1.5">
+                {transcript && (
+                  <button
+                    onClick={() => downloadTranscriptFile(transcript, interactionId)}
+                    className="flex w-full items-center gap-2.5 rounded-lg bg-white px-3 py-2.5 text-left shadow-sm hover:bg-ink-50"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#25d366]/10 text-xl">
+                      📄
+                    </span>
+                    <div className="min-w-0">
+                      <div className="truncate text-[13px] font-medium text-ink-900">
+                        call-transcript-{interactionId}.txt
+                      </div>
+                      <div className="text-[11px] text-ink-400">Tap to download · TXT</div>
+                    </div>
+                  </button>
+                )}
+                {includeRecording && (
+                  <div className="rounded-lg bg-white px-3 py-2.5 shadow-sm">
+                    <div className="mb-2 flex items-center gap-2.5">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#25d366]/10 text-xl">
+                        🎙
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <a
+                          href={audioUrl(interactionId)}
+                          download={`call-recording-${interactionId}.mp3`}
+                          className="block truncate text-[13px] font-medium text-[#075e54] hover:underline"
+                        >
+                          call-recording-{interactionId}.mp3
+                        </a>
+                        <div className="text-[11px] text-ink-400">Tap to download · MP3</div>
+                      </div>
+                    </div>
+                    <audio controls src={audioUrl(interactionId)} className="h-8 w-full" />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
         <CloseBar onClose={onClose} />
