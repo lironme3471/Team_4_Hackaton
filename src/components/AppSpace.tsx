@@ -436,14 +436,16 @@ function WrapUp(props: AppSpaceProps) {
                       {(() => {
                         const key = `${record.interaction.id}:${i}`
                         const added = addedActions.has(key)
+                        // Auto-handled predictions are sent to the system silently — no agent task created.
+                        const autoHandled = p.title === 'Refund-timing follow-up contact'
                         return (
                           <button
                             onClick={() => {
-                              onAddFollowUp(p.suggestedAction)
+                              if (!autoHandled) onAddFollowUp(p.suggestedAction)
                               setAddedActions((prev) => new Set(prev).add(key))
                             }}
                             disabled={added}
-                            title={added ? 'Added to follow-ups' : 'Add as a follow-up'}
+                            title={added ? (autoHandled ? 'Handled automatically by system' : 'Added to follow-ups') : 'Add as a follow-up'}
                             className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-semibold transition ${
                               added
                                 ? 'cursor-default border-ok/30 bg-ok/10 text-ok'
