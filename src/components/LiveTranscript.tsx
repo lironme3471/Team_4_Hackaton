@@ -58,10 +58,12 @@ function SentimentFace({ sentiment }: { sentiment: Sentiment | null }) {
   )
 }
 
+const PLAYBACK_SPEED = 1.5
+
 /** Timer fallback (and inter-line gap) pacing, in ms, based on word count. */
 function dwellFor(text: string) {
   const words = text.split(/\s+/).length
-  return Math.min(2200, Math.max(900, words * 170 + 500))
+  return Math.min(2200, Math.max(900, words * 170 + 500)) / PLAYBACK_SPEED
 }
 
 /**
@@ -127,17 +129,25 @@ export function LiveTranscript({
     const naturalness = (v: SpeechSynthesisVoice) => {
       const n = v.name.toLowerCase()
       let score = 0
-      if (n.includes('aria')) score += 10        // Microsoft Aria — best US female neural voice
+      // Tier 1: highest-quality neural voices by name
+      if (n.includes('aria')) score += 14        // Microsoft Aria — best expressive US female neural
+      if (n.includes('ava') && n.includes('premium')) score += 13  // macOS Ava (Premium)
+      if (n.includes('ava') && n.includes('enhanced')) score += 12
+      if (n.includes('samantha') && n.includes('premium')) score += 12
+      if (n.includes('zephyr')) score += 11      // Chrome/Google neural
+      if (n.includes('nova')) score += 10
+      if (n.includes('jenny')) score += 9
+      // Tier 2: quality markers
       if (n.includes('natural') || n.includes('neural')) score += 6
       if (n.includes('premium') || n.includes('enhanced')) score += 5
       if (n.includes('siri')) score += 5
-      if (n.includes('online')) score += 3
+      if (n.includes('online')) score += 4
       if (n.includes('google')) score += 3
       if (!v.localService) score += 2            // cloud/network voices are higher fidelity
       if (v.lang?.toLowerCase() === 'en-us') score += 1
       return score
     }
-    const FEMALE = ['aria', 'jenny', 'samantha', 'ava', 'allison', 'zoe', 'victoria', 'karen', 'zira', 'female']
+    const FEMALE = ['aria', 'ava', 'zephyr', 'nova', 'jenny', 'samantha', 'allison', 'zoe', 'victoria', 'karen', 'zira', 'female']
     const MALE = ['guy', 'aaron', 'alex', 'tom', 'evan', 'david', 'fred', 'male']
     const bestFor = (names: string[], exclude?: SpeechSynthesisVoice) => {
       const matches = en
@@ -160,7 +170,7 @@ export function LiveTranscript({
     const scheduleFinished = () => {
       if (finishedRef.current) return
       finishedRef.current = true
-      timer = setTimeout(() => { if (!cancelled) onFinishedRef.current?.() }, 3000)
+      timer = setTimeout(() => { if (!cancelled) onFinishedRef.current?.() }, 3000 / PLAYBACK_SPEED)
     }
 
     // Fallback speech path: speak via the Web Speech API, humanizing the flat
@@ -182,9 +192,65 @@ export function LiveTranscript({
       const seed = ((at + 1) * 2654435761) % 1000 / 1000 // deterministic 0..1 per line
       const jitter = (amt: number) => (seed - 0.5) * 2 * amt
       const asks = /\?\s*$/.test(line.text)
-      u.pitch = (agent ? 1.08 : 0.92) + jitter(0.05) + (asks ? 0.06 : 0)
-      u.rate = (agent ? 1.03 : 0.97) + jitter(0.04)
-      u.onend = () => { revealSentiment(); if (isLast) scheduleFinished(); else advance(300) }
+      const declares = /[.!]\s*$/.test(line.text)
+      const sentiment = line.sentiment as string | undefined
+
+      let basePitch: number
+      let baseRate: number
+      let chunkGap: number  // ms pause between comma-chunks
+
+      if (agent) {
+        // Agent: calm, professional, consistent
+        basePitch = 1.06
+        baseRate = (1.05 + jitter(0.07)) * PLAYBACK_SPEED
+        chunkGap = 60
+      } else {
+        // Customer: more emotional range — pitch shifts with sentiment, rate varies
+        // with frustration (faster when venting, slower when asking carefully)
+        const frustrated = sentiment === 'unhappy'
+        const relieved = sentiment === 'happy'
+        basePitch = frustrated ? 0.82 : relieved ? 0.96 : 0.89
+        // Frustrated callers tend to speak faster; relieved/questioning more slowly
+        const emotionRate = frustrated ? 1.08 : relieved ? 0.93 : 0.97
+        baseRate = (emotionRate + jitter(0.10)) * PLAYBACK_SPEED
+        chunkGap = frustrated ? 45 : 80  // shorter gap when venting, longer when careful
+      }
+
+      const pitchContour = asks ? 0.09 : declares ? -0.05 : 0
+      u.pitch = basePitch + jitter(agent ? 0.06 : 0.10) + pitchContour
+      u.rate = baseRate
+
+      // Split at commas/semicolons to create natural mid-sentence breathing pauses
+      // by chaining multiple shorter utterances instead of one flat monotone block.
+      const chunks = line.text.split(/(?<=[,;])\s+/).filter(Boolean)
+      if (chunks.length > 1 && synth) {
+        let ci = 0
+        const speakChunk = () => {
+          if (cancelled || ci >= chunks.length) return
+          const cu = new SpeechSynthesisUtterance(chunks[ci])
+          if (v) cu.voice = v
+          // Customer: each chunk slightly varied in pitch (more expressive)
+          const chunkPitchNudge = agent
+            ? (ci === 0 ? 0.03 : ci === chunks.length - 1 ? -0.03 : 0)
+            : jitter(0.05) + (ci === chunks.length - 1 ? pitchContour : 0)
+          cu.pitch = u.pitch + chunkPitchNudge
+          cu.rate = u.rate
+          const last = ci === chunks.length - 1
+          cu.onend = () => {
+            if (cancelled) return
+            if (last) { revealSentiment(); if (isLast) scheduleFinished(); else advance(300 / PLAYBACK_SPEED) }
+            else { ci++; setTimeout(speakChunk, chunkGap) }
+          }
+          cu.onerror = () => { if (last) { revealSentiment(); if (isLast) scheduleFinished(); else advance(dwellFor(line.text)) } else { ci++; speakChunk() } }
+          synth.resume()
+          synth.speak(cu)
+          ci++
+        }
+        speakChunk()
+        return
+      }
+
+      u.onend = () => { revealSentiment(); if (isLast) scheduleFinished(); else advance(300 / PLAYBACK_SPEED) }
       u.onerror = () => { revealSentiment(); if (isLast) scheduleFinished(); else advance(dwellFor(line.text)) }
       // Chrome silently pauses synthesis after inactivity — resume before each utterance.
       synth.resume()
@@ -216,11 +282,12 @@ export function LiveTranscript({
         let guard_done = false
         const guard = (fn: () => void) => () => { if (!guard_done) { guard_done = true; fn() } }
         const el = new Audio(src)
+        el.playbackRate = PLAYBACK_SPEED
         audioElRef.current = el
         el.onended = guard(() => {
           if (!cancelled) {
             revealSentiment()
-            if (isLast) scheduleFinished(); else advance(300)
+            if (isLast) scheduleFinished(); else advance(300 / PLAYBACK_SPEED)
           }
         })
         el.onerror = guard(onFail)
@@ -268,7 +335,7 @@ export function LiveTranscript({
       )
     }
 
-    timer = setTimeout(revealNext, 600)
+    timer = setTimeout(revealNext, 600 / PLAYBACK_SPEED)
 
     // Chrome pauses speechSynthesis after ~15s of inactivity; kick it every 10s.
     const heartbeat = synth ? setInterval(() => { if (!cancelled) synth.resume() }, 10000) : undefined
