@@ -21,6 +21,7 @@ import {
 import { LiveTranscript } from './LiveTranscript'
 import { SummaryPreview } from './SummaryPreview'
 import { buildSurvey } from '../lib/survey'
+import { useFeedback } from '../lib/feedback'
 
 const SEND_CHANNELS: Channel[] = ['email', 'sms', 'whatsapp']
 
@@ -185,12 +186,17 @@ function WrapUp(props: AppSpaceProps) {
   const [editing, setEditing] = useState(false)
   const [sendChannel, setSendChannel] = useState<Channel>('email')
   const [showPreview, setShowPreview] = useState(false)
+  // Track which AI suggestions have been added as follow-ups (keyed per
+  // interaction so the state stays correct when switching calls).
+  const [addedActions, setAddedActions] = useState<Set<string>>(new Set())
 
   // Customer-friendly versions of the AI next-issue insights, woven into the
   // recap. Sensitive predictions (no customerTip) stay internal-only.
   const tips = record.predictions.map((p) => p.customerTip).filter((t): t is string => Boolean(t))
   // Brief, conversation-tailored feedback survey attached to the recap.
   const survey = buildSurvey(record)
+  // Feedback received back from the customer for this interaction (placeholder receiver).
+  const feedback = useFeedback(record.interaction.id)
   const [includeTranscript, setIncludeTranscript] = useState(false)
   const [includeRecording, setIncludeRecording] = useState(false)
 
@@ -427,17 +433,66 @@ function WrapUp(props: AppSpaceProps) {
                     <p className="mt-2 text-[11px] leading-relaxed text-ink-500">{p.reasoning}</p>
                     <div className="mt-2 flex items-start gap-1.5 rounded-md bg-brand-50 p-1.5">
                       <p className="flex-1 text-[11px] text-ink-700">{p.suggestedAction}</p>
-                      <button
-                        onClick={() => onAddFollowUp(p.suggestedAction)}
-                        className="shrink-0 rounded border border-brand-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-brand-700 hover:bg-brand-50"
-                      >
-                        + Add
-                      </button>
+                      {(() => {
+                        const key = `${record.interaction.id}:${i}`
+                        const added = addedActions.has(key)
+                        return (
+                          <button
+                            onClick={() => {
+                              onAddFollowUp(p.suggestedAction)
+                              setAddedActions((prev) => new Set(prev).add(key))
+                            }}
+                            disabled={added}
+                            title={added ? 'Added to follow-ups' : 'Add as a follow-up'}
+                            className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-semibold transition ${
+                              added
+                                ? 'cursor-default border-ok/30 bg-ok/10 text-ok'
+                                : 'border-brand-200 bg-white text-brand-700 hover:bg-brand-50'
+                            }`}
+                          >
+                            {added ? '✓ Added' : '+ Add'}
+                          </button>
+                        )
+                      })()}
                     </div>
                   </div>
                 )
               })}
             </div>
+          </Card>
+
+          {/* Customer feedback received (placeholder receiver) */}
+          <Card>
+            <CardHeader title="Customer feedback" accent />
+            {feedback.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-ink-200 px-3 py-4 text-center">
+                <p className="text-xs text-ink-500">Awaiting the customer's response…</p>
+                <p className="mt-0.5 text-[11px] text-ink-400">
+                  Survey sent with the recap — responses arrive here once submitted.
+                </p>
+              </div>
+            ) : (
+              <ul className="space-y-2">
+                {feedback.map((f, i) => (
+                  <li key={i} className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-amber-500" aria-label={`${f.rating} of 5 stars`}>
+                        {'★'.repeat(f.rating)}{'☆'.repeat(5 - f.rating)}
+                      </span>
+                      <span className="text-[10px] uppercase tracking-wide text-ink-400">via {f.channel}</span>
+                    </div>
+                    <div className="mt-1 flex items-center gap-2 text-[11px] text-ink-600">
+                      {f.resolved && (
+                        <span className={f.resolved === 'yes' ? 'text-ok' : 'text-warn'}>
+                          {f.resolved === 'yes' ? '👍 Resolved' : '👎 Not yet resolved'}
+                        </span>
+                      )}
+                      <span className="text-ink-400">{new Date(f.submittedAt).toLocaleString()}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Card>
 
           {/* Disposition */}

@@ -254,7 +254,13 @@ function SmsPreview({
         </div>
         <CloseBar onClose={onClose} />
       </div>
-      {surveyOpen && survey && <SurveyModal survey={survey} onClose={() => setSurveyOpen(false)} />}
+      {surveyOpen && survey && (
+        <SurveyModal
+          survey={survey}
+          context={{ interactionId, customer: contact.name, channel: 'sms' }}
+          onClose={() => setSurveyOpen(false)}
+        />
+      )}
     </PreviewShell>
   )
 }
@@ -385,7 +391,13 @@ function WhatsAppPreview({
         </div>
         <CloseBar onClose={onClose} />
       </div>
-      {surveyOpen && survey && <SurveyModal survey={survey} onClose={() => setSurveyOpen(false)} />}
+      {surveyOpen && survey && (
+        <SurveyModal
+          survey={survey}
+          context={{ interactionId, customer: contact.name, channel: 'whatsapp' }}
+          onClose={() => setSurveyOpen(false)}
+        />
+      )}
     </PreviewShell>
   )
 }
