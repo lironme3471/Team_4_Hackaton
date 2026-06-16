@@ -42,8 +42,8 @@ function write(next: CustomerFeedback[]) {
  * persist locally and notify subscribers so the loop is visible end-to-end.
  */
 export function submitFeedback(feedback: CustomerFeedback): void {
-  write([feedback, ...read()])
-  // Stands in for the network call to the backend receiver.
+  // Replace any existing entry for the same interaction — one response per call.
+  write([feedback, ...read().filter((f) => f.interactionId !== feedback.interactionId)])
   console.info('[CX Loop] customer feedback received (placeholder):', feedback)
 }
 

@@ -17,12 +17,12 @@ function audioUrl(interactionId: string) {
   return `${import.meta.env.BASE_URL}audio/call-${interactionId}.mp3`
 }
 
-function transcriptText(lines: TranscriptLine[], interactionId: string): string {
+function transcriptText(lines: TranscriptLine[]): string {
   return lines.map((l) => `${l.speaker === 'agent' ? 'Agent' : 'Caller'}: ${l.text}`).join('\n')
 }
 
 function downloadTranscriptFile(lines: TranscriptLine[], interactionId: string) {
-  const blob = new Blob([transcriptText(lines, interactionId)], { type: 'text/plain' })
+  const blob = new Blob([transcriptText(lines)], { type: 'text/plain' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
