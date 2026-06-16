@@ -83,6 +83,14 @@ export function CalendarWidget({
                 <span>Add to Outlook</span>
               </button>
 
+              <button
+                onClick={handleOutlookWeb}
+                className="inline-flex items-center gap-1.5 rounded border border-ink-200 px-2.5 py-1 text-xs font-medium text-ink-700 transition-colors hover:bg-ink-100"
+              >
+                <span>🌐</span>
+                <span>Open in Outlook Web</span>
+              </button>
+
               {error && (
                 <div className="text-red-600">{error}</div>
               )}
