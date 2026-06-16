@@ -113,8 +113,8 @@ export const LOOP_RECORDS: LoopRecord[] = [
       },
     ],
     connected: [
-      { source: 'Billing', label: 'June invoice', value: '$98.00 → $49.00 refunded', status: 'ok' },
-      { source: 'Billing', label: 'Payment method', value: 'Visa •4417 — expired 05/26', status: 'danger' },
+      { source: 'Billing', label: 'June invoice', value: '$98.00 charged (duplicate — under review)', status: 'warn' },
+      { source: 'Billing', label: 'Payment method', value: 'Visa •4417 — expiring soon', status: 'warn' },
       { source: 'Subscription', label: 'Plan', value: 'Pro (annual) • renews 03/2027', status: 'ok' },
       { source: 'Billing', label: 'Autopay', value: 'Enabled — next run 06/20', status: 'warn' },
     ],
