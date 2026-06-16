@@ -2,10 +2,12 @@ import { useEffect } from 'react'
 import type { Contact, LoopSummary, TranscriptLine } from '../types'
 import type { Survey } from '../lib/survey'
 import { AGENT } from '../data/mockData'
+import { CalendarWidget } from './CalendarWidget'
 import { SurveyCard } from './SurveyCard'
 
 const BRAND = 'CX Loop'
 const FROM_EMAIL = 'support@cxloop.com'
+const inlineDatePattern = /\b((?:0?[1-9]|1[0-2])\/(?:0?[1-9]|[12]\d|3[01])|(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2})\b/
 
 function fmtMailDate() {
   return new Date().toLocaleString('en-US', {
@@ -29,6 +31,31 @@ function downloadTranscript(lines: TranscriptLine[], interactionId: string) {
   a.download = `call-transcript-${interactionId}.txt`
   a.click()
   URL.revokeObjectURL(url)
+}
+
+function renderCalendarDate(text: string, eventTitle: string, interactionId: string) {
+  const match = text.match(inlineDatePattern)
+
+  if (!match || match.index === undefined) {
+    return text
+  }
+
+  const dateLabel = match[0]
+  const before = text.slice(0, match.index)
+  const after = text.slice(match.index + dateLabel.length)
+
+  return (
+    <>
+      {before}
+      <CalendarWidget
+        followUpText={eventTitle}
+        dueDate={dateLabel}
+        interactionId={interactionId}
+        className="cursor-help border-b border-dashed border-current text-current hover:text-[#0f6cbd]"
+      />
+      {after}
+    </>
+  )
 }
 
 /** Tiny inline icons for the Outlook command bar (decorative). */
@@ -197,7 +224,7 @@ export function EmailPreview({
                     {tips.map((t, i) => (
                       <li key={i} className="flex gap-2 text-[13px]">
                         <span>💡</span>
-                        <span>{t}</span>
+                        <span>{renderCalendarDate(t, t, interactionId)}</span>
                       </li>
                     ))}
                   </ul>

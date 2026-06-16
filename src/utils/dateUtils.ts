@@ -1,34 +1,66 @@
+const monthNames = [
+  'january',
+  'february',
+  'march',
+  'april',
+  'may',
+  'june',
+  'july',
+  'august',
+  'september',
+  'october',
+  'november',
+  'december',
+]
+
+function inferYear(month: number, day: number): Date {
+  const today = new Date()
+  const currentYear = today.getFullYear()
+  const currentYearDate = new Date(currentYear, month - 1, day)
+
+  if (currentYearDate < today) {
+    return new Date(currentYear + 1, month - 1, day)
+  }
+
+  return currentYearDate
+}
+
 /**
- * Parse a date string in MM/DD format and return a full Date object.
+ * Parse a date string in either MM/DD or Month Day format and return a full Date object.
  * Automatically infers the year based on whether the date has passed in the current year.
- *
- * @param dateStr - Date string in MM/DD format (e.g., "06/15")
- * @returns Date object or null if parsing fails
  */
-export function parseMMDDDate(dateStr: string): Date | null {
-  const match = dateStr.trim().match(/^(\d{1,2})\/(\d{1,2})$/)
-  if (!match) return null
+export function parseDateLabel(dateStr: string): Date | null {
+  const trimmedDate = dateStr.trim()
+  const numericMatch = trimmedDate.match(/^(\d{1,2})\/(\d{1,2})$/)
 
-  const month = parseInt(match[1], 10)
-  const day = parseInt(match[2], 10)
+  if (numericMatch) {
+    const month = parseInt(numericMatch[1], 10)
+    const day = parseInt(numericMatch[2], 10)
 
-  // Validate month and day
-  if (month < 1 || month > 12 || day < 1 || day > 31) {
+    if (month < 1 || month > 12 || day < 1 || day > 31) {
+      return null
+    }
+
+    return inferYear(month, day)
+  }
+
+  const longMonthMatch = trimmedDate.match(/^([A-Za-z]+)\s+(\d{1,2})$/)
+  if (!longMonthMatch) {
     return null
   }
 
-  const today = new Date()
-  const currentYear = today.getFullYear()
+  const monthIndex = monthNames.indexOf(longMonthMatch[1].toLowerCase())
+  const day = parseInt(longMonthMatch[2], 10)
 
-  // Try current year first
-  let date = new Date(currentYear, month - 1, day)
-
-  // If the date has already passed, assume it's for next year
-  if (date < today) {
-    date = new Date(currentYear + 1, month - 1, day)
+  if (monthIndex === -1 || day < 1 || day > 31) {
+    return null
   }
 
-  return date
+  return inferYear(monthIndex + 1, day)
+}
+
+export function parseMMDDDate(dateStr: string): Date | null {
+  return parseDateLabel(dateStr)
 }
 
 /**
