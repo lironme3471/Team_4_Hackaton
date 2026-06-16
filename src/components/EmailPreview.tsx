@@ -3,6 +3,7 @@ import type { Contact, LoopSummary, TranscriptLine } from '../types'
 import type { Survey } from '../lib/survey'
 import { AGENT } from '../data/mockData'
 import { SurveyCard } from './SurveyCard'
+import { CalendarWidget } from './CalendarWidget'
 
 const BRAND = 'CX Loop'
 const FROM_EMAIL = 'support@cxloop.com'
@@ -194,7 +195,17 @@ export function EmailPreview({
                         <span className="text-ink-400">•</span>
                         <span>
                           {f.text}
-                          {f.due && <span className="text-ink-400"> — by {f.due}</span>}
+                          {f.due && (
+                            <span className="text-ink-400">
+                              {' '}
+                              — by{' '}
+                              <CalendarWidget
+                                followUpText={f.text}
+                                dueDate={f.due}
+                                interactionId={interactionId}
+                              />
+                            </span>
+                          )}
                         </span>
                       </li>
                     ))}
