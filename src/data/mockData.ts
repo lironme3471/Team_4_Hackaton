@@ -408,7 +408,7 @@ export const LOOP_RECORDS: LoopRecord[] = [
         title: 'Callback disputing taxes and fees',
         likelihood: 29,
         reasoning:
-          'Customers surprised by a base-rate increase frequently call again questioning the added taxes and fees on the higher bill.',
+          'Taxes and fees are charged as a percentage of the base rate, so they rise automatically when the rate goes up. Customers who don\'t expect this often call back disputing the larger total.',
         suggestedAction: 'Include a clear line-item breakdown of taxes and fees in the summary.',
         customerTip:
           'Wondering about the taxes and fees on your bill? Your next invoice includes a clear line-by-line breakdown — and you can always reply here if anything looks unclear.',

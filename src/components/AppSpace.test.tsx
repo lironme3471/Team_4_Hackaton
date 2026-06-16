@@ -53,6 +53,19 @@ describe('AppSpace wrap-up — AI insights in the Loop summary', () => {
     expect(screen.getByText(/Frustration-driven plan downgrade/i)).toBeInTheDocument()
   })
 
+  it('adds an AI suggested action and confirms with a disabled "Added" state', async () => {
+    const user = userEvent.setup()
+    const onAddFollowUp = vi.fn()
+    render(<AppSpace {...makeProps({ onAddFollowUp })} />)
+
+    const addButtons = screen.getAllByRole('button', { name: /\+ Add/i })
+    await user.click(addButtons[0])
+
+    expect(onAddFollowUp).toHaveBeenCalledTimes(1)
+    const added = screen.getByRole('button', { name: /✓ Added/i })
+    expect(added).toBeDisabled()
+  })
+
   it('shows a brief, conversation-tailored feedback survey with a link', () => {
     render(<AppSpace {...makeProps()} />)
     const surveyBox = within(screen.getByTestId('feedback-survey'))

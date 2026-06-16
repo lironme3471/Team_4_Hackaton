@@ -186,6 +186,9 @@ function WrapUp(props: AppSpaceProps) {
   const [editing, setEditing] = useState(false)
   const [sendChannel, setSendChannel] = useState<Channel>('email')
   const [showPreview, setShowPreview] = useState(false)
+  // Track which AI suggestions have been added as follow-ups (keyed per
+  // interaction so the state stays correct when switching calls).
+  const [addedActions, setAddedActions] = useState<Set<string>>(new Set())
 
   // Customer-friendly versions of the AI next-issue insights, woven into the
   // recap. Sensitive predictions (no customerTip) stay internal-only.
@@ -428,12 +431,27 @@ function WrapUp(props: AppSpaceProps) {
                     <p className="mt-2 text-[11px] leading-relaxed text-ink-500">{p.reasoning}</p>
                     <div className="mt-2 flex items-start gap-1.5 rounded-md bg-brand-50 p-1.5">
                       <p className="flex-1 text-[11px] text-ink-700">{p.suggestedAction}</p>
-                      <button
-                        onClick={() => onAddFollowUp(p.suggestedAction)}
-                        className="shrink-0 rounded border border-brand-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-brand-700 hover:bg-brand-50"
-                      >
-                        + Add
-                      </button>
+                      {(() => {
+                        const key = `${record.interaction.id}:${i}`
+                        const added = addedActions.has(key)
+                        return (
+                          <button
+                            onClick={() => {
+                              onAddFollowUp(p.suggestedAction)
+                              setAddedActions((prev) => new Set(prev).add(key))
+                            }}
+                            disabled={added}
+                            title={added ? 'Added to follow-ups' : 'Add as a follow-up'}
+                            className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-semibold transition ${
+                              added
+                                ? 'cursor-default border-ok/30 bg-ok/10 text-ok'
+                                : 'border-brand-200 bg-white text-brand-700 hover:bg-brand-50'
+                            }`}
+                          >
+                            {added ? '✓ Added' : '+ Add'}
+                          </button>
+                        )
+                      })()}
                     </div>
                   </div>
                 )
