@@ -102,6 +102,20 @@ describe('AppSpace wrap-up — preview + send flow', () => {
     expect(screen.getByText(/business account/i)).toBeInTheDocument()
   })
 
+  it('keeps include toggles available on WhatsApp and shows CX1 links in preview', async () => {
+    const user = userEvent.setup()
+    render(<AppSpace {...makeProps()} />)
+
+    await user.click(screen.getByTitle('WhatsApp'))
+    await user.click(screen.getByLabelText(/Call transcript/i))
+    await user.click(screen.getByLabelText(/Call recording/i))
+    await user.click(screen.getByRole('button', { name: /^Preview$/i }))
+
+    const links = screen.getAllByRole('link')
+    expect(links.some((l) => l.getAttribute('href')?.includes('/transcript'))).toBe(true)
+    expect(links.some((l) => l.getAttribute('href')?.includes('/recording'))).toBe(true)
+  })
+
   it('exposes a Preview summary action after the summary is sent', async () => {
     const user = userEvent.setup()
     render(<AppSpace {...makeProps({ sent: true })} />)

@@ -52,6 +52,69 @@ describe('SummaryPreview channel templates', () => {
     expect(screen.getByText(/SMS segment/i)).toBeInTheDocument()
   })
 
+  it('renders transcript and recording as CX1 view links in email preview', () => {
+    render(
+      <SummaryPreview
+        channel="email"
+        contact={contact}
+        summary={summary}
+        tips={tips}
+        interactionId="int-test"
+        transcript={[
+          { speaker: 'agent', text: 'Hello!' },
+          { speaker: 'customer', text: 'Hi there.' },
+        ]}
+        includeRecording
+        onClose={vi.fn()}
+      />,
+    )
+
+    const transcriptLinks = screen.getAllByRole('link', { name: /View transcript in CX1/i })
+    const recordingLinks = screen.getAllByRole('link', { name: /View recording in CX1/i })
+
+    expect(transcriptLinks[0]).toHaveAttribute('href', expect.stringContaining('/interactions/int-test/transcript'))
+    expect(recordingLinks[0]).toHaveAttribute('href', expect.stringContaining('/interactions/int-test/recording'))
+    expect(screen.queryByText(/call-transcript-int-test\.txt/i)).not.toBeInTheDocument()
+  })
+
+  it('renders transcript and recording as CX1 view links in SMS preview', () => {
+    render(
+      <SummaryPreview
+        channel="sms"
+        contact={contact}
+        summary={summary}
+        tips={tips}
+        interactionId="int-test"
+        transcript={[{ speaker: 'agent', text: 'Thanks for calling.' }]}
+        includeRecording
+        onClose={vi.fn()}
+      />,
+    )
+
+    const links = screen.getAllByRole('link')
+    expect(links.some((l) => l.getAttribute('href')?.includes('/interactions/int-test/transcript'))).toBe(true)
+    expect(links.some((l) => l.getAttribute('href')?.includes('/interactions/int-test/recording'))).toBe(true)
+  })
+
+  it('renders transcript and recording as CX1 view links in WhatsApp preview', () => {
+    render(
+      <SummaryPreview
+        channel="whatsapp"
+        contact={contact}
+        summary={summary}
+        tips={tips}
+        interactionId="int-test"
+        transcript={[{ speaker: 'agent', text: 'Thanks for calling.' }]}
+        includeRecording
+        onClose={vi.fn()}
+      />,
+    )
+
+    const links = screen.getAllByRole('link')
+    expect(links.some((l) => l.getAttribute('href')?.includes('/interactions/int-test/transcript'))).toBe(true)
+    expect(links.some((l) => l.getAttribute('href')?.includes('/interactions/int-test/recording'))).toBe(true)
+  })
+
   it('renders the WhatsApp template with a tips section', () => {
     render(<SummaryPreview channel="whatsapp" contact={contact} summary={summary} tips={tips} interactionId="int-test" onClose={vi.fn()} />)
     expect(screen.getByText(/business account/i)).toBeInTheDocument()
