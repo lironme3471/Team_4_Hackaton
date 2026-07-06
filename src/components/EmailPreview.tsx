@@ -4,6 +4,7 @@ import type { Survey } from '../lib/survey'
 import { AGENT } from '../data/mockData'
 import { CalendarWidget } from './CalendarWidget'
 import { SurveyCard } from './SurveyCard'
+import { getCx1RecordingUrl, getCx1TranscriptUrl } from '../utils/cx1Links'
 
 const BRAND = 'CX Loop'
 const FROM_EMAIL = 'support@cxloop.com'
@@ -18,19 +19,6 @@ function fmtMailDate() {
     hour: 'numeric',
     minute: '2-digit',
   })
-}
-
-function downloadTranscript(lines: TranscriptLine[], interactionId: string) {
-  const text = lines
-    .map((l) => `${l.speaker === 'agent' ? `${AGENT.name} (Agent)` : 'Caller'}: ${l.text}`)
-    .join('\n')
-  const blob = new Blob([text], { type: 'text/plain' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `call-transcript-${interactionId}.txt`
-  a.click()
-  URL.revokeObjectURL(url)
 }
 
 function renderCalendarDate(text: string, eventTitle: string, interactionId: string) {
@@ -75,7 +63,7 @@ const TrashI = () => (
 
 /**
  * Outlook-365-styled preview of the loop summary as the customer receives it.
- * Transcript attachment downloads a real .txt file; recording is a mock link.
+ * Transcript and recording are shared as CX1 view links.
  */
 export function EmailPreview({
   contact,
@@ -105,6 +93,8 @@ export function EmailPreview({
   const firstName = contact.name.split(' ')[0]
   const subject = `${firstName}, here's a recap of your call with ${BRAND}`
   const hasAttachments = transcript || includeRecording
+  const transcriptLink = getCx1TranscriptUrl(interactionId)
+  const recordingLink = getCx1RecordingUrl(interactionId)
 
   return (
     <div
@@ -159,20 +149,23 @@ export function EmailPreview({
           {hasAttachments && (
             <div className="mt-2 flex flex-wrap gap-2 border-t border-ink-100 pt-2">
               {transcript && (
-                <button
-                  onClick={() => downloadTranscript(transcript, interactionId)}
+                <a
+                  href={transcriptLink}
+                  target="_blank"
+                  rel="noreferrer"
                   className="flex items-center gap-1.5 rounded border border-ink-200 bg-ink-50 px-2.5 py-1 text-xs text-ink-700 hover:bg-ink-100"
                 >
-                  <span>📄</span> call-transcript-{interactionId}.txt
-                </button>
+                  <span>📄</span> View transcript in CX1
+                </a>
               )}
               {includeRecording && (
                 <a
-                  href={`${import.meta.env.BASE_URL}audio/call-${interactionId}.mp3`}
-                  download={`call-recording-${interactionId}.mp3`}
+                  href={recordingLink}
+                  target="_blank"
+                  rel="noreferrer"
                   className="flex items-center gap-1.5 rounded border border-ink-200 bg-ink-50 px-2.5 py-1 text-xs text-ink-700 hover:bg-ink-100"
                 >
-                  <span>🎙</span> call-recording-{interactionId}.mp3
+                  <span>🎙</span> View recording in CX1
                 </a>
               )}
             </div>
@@ -250,42 +243,31 @@ export function EmailPreview({
                       <li className="flex items-start gap-2">
                         <span className="mt-0.5 text-base leading-none">📄</span>
                         <div>
-                          <button
-                            onClick={() => downloadTranscript(transcript, interactionId)}
+                          <a
+                            href={transcriptLink}
+                            target="_blank"
+                            rel="noreferrer"
                             className="text-sm font-medium text-[#1a73e8] hover:underline"
                           >
-                            call-transcript-{interactionId}.txt
-                          </button>
-                          <p className="text-[11px] text-ink-400">Full call transcript — click to download</p>
+                            View transcript in CX1
+                          </a>
+                          <p className="text-[11px] text-ink-400">Open the full call transcript in CX1</p>
                         </div>
                       </li>
                     )}
                     {includeRecording && (
                       <li className="flex items-start gap-2">
                         <span className="mt-0.5 text-base leading-none">🎙</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3">
-                            <a
-                              href={`${import.meta.env.BASE_URL}audio/call-${interactionId}.mp3`}
-                              download={`call-recording-${interactionId}.mp3`}
-                              className="text-sm font-medium text-[#1a73e8] hover:underline"
-                            >
-                              call-recording-{interactionId}.mp3
-                            </a>
-                            <a
-                              href={`${import.meta.env.BASE_URL}audio/call-${interactionId}.mp3`}
-                              download={`call-recording-${interactionId}.mp3`}
-                              className="shrink-0 rounded border border-[#1a73e8]/30 px-2 py-0.5 text-[10px] font-semibold text-[#1a73e8] hover:bg-[#1a73e8]/5"
-                            >
-                              ↓ Download
-                            </a>
-                          </div>
-                          <audio
-                            controls
-                            src={`${import.meta.env.BASE_URL}audio/call-${interactionId}.mp3`}
-                            className="mt-2 h-8 w-full"
-                          />
-                          <p className="mt-1 text-[11px] text-ink-400">Call recording — available for 30 days</p>
+                        <div>
+                          <a
+                            href={recordingLink}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-sm font-medium text-[#1a73e8] hover:underline"
+                          >
+                            View recording in CX1
+                          </a>
+                          <p className="mt-1 text-[11px] text-ink-400">Open the call recording in CX1</p>
                         </div>
                       </li>
                     )}

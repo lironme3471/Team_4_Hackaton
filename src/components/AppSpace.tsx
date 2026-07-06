@@ -317,7 +317,7 @@ function WrapUp(props: AppSpaceProps) {
                   </div>
                   {(includeTranscript || includeRecording) && (
                     <div className="flex items-center justify-center gap-3 text-[11px] text-ink-400">
-                      {includeTranscript && <span>📄 Transcript attached</span>}
+                      {includeTranscript && <span>📄 Transcript link included</span>}
                       {includeRecording && <span>🎙 Recording link included</span>}
                     </div>
                   )}
@@ -364,30 +364,27 @@ function WrapUp(props: AppSpaceProps) {
                       Send Loop summary
                     </button>
                   </div>
-                  {/* Transparency attachments — email only */}
-                  {sendChannel === 'email' && (
-                    <div className="flex items-center gap-4 rounded-lg border border-ink-100 bg-ink-50 px-3 py-2">
-                      <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-400">Include</span>
-                      <label className="flex cursor-pointer items-center gap-1.5 text-xs text-ink-600">
-                        <input
-                          type="checkbox"
-                          checked={includeTranscript}
-                          onChange={(e) => setIncludeTranscript(e.target.checked)}
-                          className="h-3.5 w-3.5 accent-brand-500"
-                        />
-                        📄 Call transcript
-                      </label>
-                      <label className="flex cursor-pointer items-center gap-1.5 text-xs text-ink-600">
-                        <input
-                          type="checkbox"
-                          checked={includeRecording}
-                          onChange={(e) => setIncludeRecording(e.target.checked)}
-                          className="h-3.5 w-3.5 accent-brand-500"
-                        />
-                        🎙 Call recording
-                      </label>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-4 rounded-lg border border-ink-100 bg-ink-50 px-3 py-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-400">Include</span>
+                    <label className="flex cursor-pointer items-center gap-1.5 text-xs text-ink-600">
+                      <input
+                        type="checkbox"
+                        checked={includeTranscript}
+                        onChange={(e) => setIncludeTranscript(e.target.checked)}
+                        className="h-3.5 w-3.5 accent-brand-500"
+                      />
+                      📄 Call transcript
+                    </label>
+                    <label className="flex cursor-pointer items-center gap-1.5 text-xs text-ink-600">
+                      <input
+                        type="checkbox"
+                        checked={includeRecording}
+                        onChange={(e) => setIncludeRecording(e.target.checked)}
+                        className="h-3.5 w-3.5 accent-brand-500"
+                      />
+                      🎙 Call recording
+                    </label>
+                  </div>
                 </div>
               )}
             </div>

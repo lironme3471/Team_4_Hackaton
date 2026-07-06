@@ -6,29 +6,12 @@ import { EmailPreview } from './EmailPreview'
 import { SurveyModal } from './SurveyCard'
 import { WhatsAppIcon } from './icons'
 import { getSentimentArc, getSentimentBrief } from '../utils/sentimentCopy'
+import { getCx1RecordingUrl, getCx1TranscriptUrl } from '../utils/cx1Links'
 
 const BRAND = 'CX Loop'
 
 function firstName(contact: Contact) {
   return contact.name.split(' ')[0]
-}
-
-function audioUrl(interactionId: string) {
-  return `${import.meta.env.BASE_URL}audio/call-${interactionId}.mp3`
-}
-
-function transcriptText(lines: TranscriptLine[]): string {
-  return lines.map((l) => `${l.speaker === 'agent' ? 'Agent' : 'Caller'}: ${l.text}`).join('\n')
-}
-
-function downloadTranscriptFile(lines: TranscriptLine[], interactionId: string) {
-  const blob = new Blob([transcriptText(lines)], { type: 'text/plain' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `call-transcript-${interactionId}.txt`
-  a.click()
-  URL.revokeObjectURL(url)
 }
 
 /**
@@ -54,8 +37,8 @@ function buildSmsText(
   msg += ` Resolved: ${resolved}.`
   if (next) msg += ` Next: ${next}.`
   if (tips[0]) msg += ` Tip: ${tips[0]}`
-  if (transcript) msg += ` 📄 Transcript: cxloop.com/files/transcript-${interactionId}.txt`
-  if (includeRecording) msg += ` 🎙 Recording: cxloop.com/files/call-${interactionId}.mp3`
+  if (transcript) msg += ` 📄 Transcript: ${getCx1TranscriptUrl(interactionId)}`
+  if (includeRecording) msg += ` 🎙 Recording: ${getCx1RecordingUrl(interactionId)}`
   if (survey) msg += ` Rate us (${survey.duration}): ${survey.url}`
   msg += ` Reply STOP to opt out.`
   return msg
@@ -176,6 +159,8 @@ function SmsPreview({
   const segments = Math.ceil(text.length / SMS_SEGMENT)
   const [before, after] = survey ? text.split(survey.url) : [text, '']
   const hasAttachments = transcript || includeRecording
+  const transcriptLink = getCx1TranscriptUrl(interactionId)
+  const recordingLink = getCx1RecordingUrl(interactionId)
 
   return (
     <PreviewShell onClose={onClose}>
@@ -215,34 +200,36 @@ function SmsPreview({
           {hasAttachments && (
             <div className="flex flex-col gap-1.5 pt-1">
               {transcript && (
-                <button
-                  onClick={() => downloadTranscriptFile(transcript, interactionId)}
+                <a
+                  href={transcriptLink}
+                  target="_blank"
+                  rel="noreferrer"
                   className="flex items-center gap-2 rounded-xl border border-ink-200 bg-ink-50 px-3 py-2 text-left text-xs text-ink-700 hover:bg-ink-100"
                 >
                   <span className="text-base">📄</span>
                   <div>
-                    <div className="font-medium">call-transcript-{interactionId}.txt</div>
-                    <div className="text-[10px] text-ink-400">Tap to download</div>
+                    <div className="font-medium">View transcript in CX1</div>
+                    <div className="text-[10px] text-ink-400">Opens in CX1</div>
                   </div>
-                </button>
+                </a>
               )}
               {includeRecording && (
-                <div className="rounded-xl border border-ink-200 bg-ink-50 px-3 py-2">
-                  <div className="mb-1.5 flex items-center gap-2">
+                <a
+                  href={recordingLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-xl border border-ink-200 bg-ink-50 px-3 py-2"
+                >
+                  <div className="flex items-center gap-2">
                     <span className="text-base">🎙</span>
                     <div>
-                      <a
-                        href={audioUrl(interactionId)}
-                        download={`call-recording-${interactionId}.mp3`}
-                        className="text-xs font-medium text-[#0b93f6] hover:underline"
-                      >
-                        call-recording-{interactionId}.mp3
-                      </a>
-                      <div className="text-[10px] text-ink-400">Tap to download</div>
+                      <div className="text-xs font-medium text-[#0b93f6] hover:underline">
+                        View recording in CX1
+                      </div>
+                      <div className="text-[10px] text-ink-400">Opens in CX1</div>
                     </div>
                   </div>
-                  <audio controls src={audioUrl(interactionId)} className="h-8 w-full" />
-                </div>
+                </a>
               )}
             </div>
           )}
@@ -277,6 +264,8 @@ function WhatsAppPreview({
   const hasAttachments = transcript || includeRecording
   const arc = getSentimentArc(sentimentLines ?? [])
   const brief = getSentimentBrief(arc)
+  const transcriptLink = getCx1TranscriptUrl(interactionId)
+  const recordingLink = getCx1RecordingUrl(interactionId)
 
   return (
     <PreviewShell onClose={onClose}>
@@ -350,40 +339,40 @@ function WhatsAppPreview({
             {hasAttachments && (
               <div className="mt-2 space-y-1.5">
                 {transcript && (
-                  <button
-                    onClick={() => downloadTranscriptFile(transcript, interactionId)}
+                  <a
+                    href={transcriptLink}
+                    target="_blank"
+                    rel="noreferrer"
                     className="flex w-full items-center gap-2.5 rounded-lg bg-white px-3 py-2.5 text-left shadow-sm hover:bg-ink-50"
                   >
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#25d366]/10 text-xl">
                       📄
                     </span>
                     <div className="min-w-0">
-                      <div className="truncate text-[13px] font-medium text-ink-900">
-                        call-transcript-{interactionId}.txt
-                      </div>
-                      <div className="text-[11px] text-ink-400">Tap to download · TXT</div>
+                      <div className="truncate text-[13px] font-medium text-ink-900">View transcript in CX1</div>
+                      <div className="text-[11px] text-ink-400">Opens in CX1</div>
                     </div>
-                  </button>
+                  </a>
                 )}
                 {includeRecording && (
-                  <div className="rounded-lg bg-white px-3 py-2.5 shadow-sm">
+                  <a
+                    href={recordingLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block rounded-lg bg-white px-3 py-2.5 shadow-sm"
+                  >
                     <div className="mb-2 flex items-center gap-2.5">
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#25d366]/10 text-xl">
                         🎙
                       </span>
                       <div className="min-w-0 flex-1">
-                        <a
-                          href={audioUrl(interactionId)}
-                          download={`call-recording-${interactionId}.mp3`}
-                          className="block truncate text-[13px] font-medium text-[#075e54] hover:underline"
-                        >
-                          call-recording-{interactionId}.mp3
-                        </a>
-                        <div className="text-[11px] text-ink-400">Tap to download · MP3</div>
+                        <div className="block truncate text-[13px] font-medium text-[#075e54] hover:underline">
+                          View recording in CX1
+                        </div>
+                        <div className="text-[11px] text-ink-400">Opens in CX1</div>
                       </div>
                     </div>
-                    <audio controls src={audioUrl(interactionId)} className="h-8 w-full" />
-                  </div>
+                  </a>
                 )}
               </div>
             )}
